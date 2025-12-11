@@ -467,6 +467,12 @@ body.splash-done #splash {
     font-size: 13px;
 }
 
+.modal-content select option {
+    background-color: #0f172a;
+    /* Dark background for options */
+    color: #fff;
+}
+
 .save-vehicle-btn,
 .close-modal-btn {
     width: 100%;
