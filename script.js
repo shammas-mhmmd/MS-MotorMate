@@ -1344,6 +1344,172 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
     });
 }
 
+// ===============================
+// RADAR / DRIVE MODE LOGIC
+// ===============================
+let savedCameras = JSON.parse(localStorage.getItem("savedCameras") || "[]");
+let radarWatchId = null;
+let lastAlertTime = 0;
+
+function toggleDriveMode() {
+    const btn = document.getElementById("btnStartDrive");
+    const statusDiv = document.getElementById("driveStatus");
+
+    if (radarWatchId) {
+        // STOP
+        navigator.geolocation.clearWatch(radarWatchId);
+        radarWatchId = null;
+        btn.innerText = "Start Radar";
+        btn.classList.remove("active");
+        statusDiv.innerText = "Radar OFF";
+        statusDiv.style.background = "#aaa";
+        document.getElementById("driveSpeed").innerText = "0";
+    } else {
+        // START
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by this browser.");
+            return;
+        }
+
+        radarWatchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const { latitude, longitude, speed } = pos.coords;
+                // Update UI
+                const speedKmh = speed ? Math.round(speed * 3.6) : 0;
+                document.getElementById("driveSpeed").innerText = speedKmh;
+                document.getElementById("driveLat").innerText = "Lat: " + latitude.toFixed(4);
+                document.getElementById("driveLng").innerText = "Lng: " + longitude.toFixed(4);
+
+                checkProximity(latitude, longitude);
+            },
+            (err) => {
+                console.error(err);
+                alert("GPS Error: " + err.message);
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 1000
+            }
+        );
+
+        btn.innerText = "Stop Radar";
+        btn.classList.add("active");
+        statusDiv.innerText = "Scanning...";
+        statusDiv.style.background = "#22c55e"; // Green
+    }
+}
+
+function markCameraLocation() {
+    if (!navigator.geolocation) {
+        alert("GPS not supported");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        const name = prompt("Enter Camera Name (e.g. 'MVD AI Cam Bypass')", "AI Camera");
+        if (name) {
+            savedCameras.push({
+                id: Date.now(),
+                name,
+                lat: latitude,
+                lng: longitude
+            });
+            localStorage.setItem("savedCameras", JSON.stringify(savedCameras));
+            updateCameraList();
+            alert("Camera location marked!");
+        }
+    });
+}
+
+function clearAllCameras() {
+    if (confirm("Clear all marked cameras?")) {
+        savedCameras = [];
+        localStorage.setItem("savedCameras", "[]");
+        updateCameraList();
+    }
+}
+
+function updateCameraList() {
+    const list = document.getElementById("cameraList");
+    if (!list) return;
+    list.innerHTML = "";
+
+    if (savedCameras.length === 0) {
+        list.innerHTML = '<div style="padding:10px; color:#aaa; text-align:center;">No cameras marked. Click "Mark AI Camera" when passing one.</div>';
+        return;
+    }
+
+    savedCameras.forEach(cam => {
+        const div = document.createElement("div");
+        div.style.padding = "8px";
+        div.style.borderBottom = "1px solid #333";
+        div.style.fontSize = "13px";
+        div.innerHTML = `🎥 <strong>${cam.name}</strong> <br> <span style="color:#aaa;">${cam.lat.toFixed(4)}, ${cam.lng.toFixed(4)}</span>`;
+        list.appendChild(div);
+    });
+}
+
+function checkProximity(lat, lng) {
+    const statusDiv = document.getElementById("driveStatus");
+    let danger = false;
+    let minDistance = 9999;
+
+    savedCameras.forEach(cam => {
+        const d = getDistanceFromLatLonInKm(lat, lng, cam.lat, cam.lng);
+        if (d < 0.5) { // 500 meters
+            danger = true;
+            if (d < minDistance) minDistance = d;
+        }
+    });
+
+    if (danger) {
+        statusDiv.innerText = `⚠️ AI CAMERA AHEAD (${(minDistance * 1000).toFixed(0)}m) ⚠️`;
+        statusDiv.style.background = "#ef4444"; // Red
+
+        // Alert Sound (Throttle to every 5s)
+        const now = Date.now();
+        if (now - lastAlertTime > 5000) {
+            playAlertSound();
+            lastAlertTime = now;
+        }
+    } else {
+        statusDiv.innerText = "SAFE - No Cameras Nearby";
+        statusDiv.style.background = "#22c55e"; // Green
+    }
+}
+
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    return d;
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+}
+
+function playAlertSound() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        osc.type = "square";
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.setValueAtTime(800, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(600, ctx.currentTime + 0.2);
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+    } catch (e) { console.error("Audio error", e); }
+}
+
 
 // ===============================
 // INITIAL LOAD (MUST BE LAST)
@@ -1361,6 +1527,7 @@ updateCareReminders();
 updateInsightsPanel();
 updateCharts();
 renderDocuments(); // init docs
+updateCameraList(); // init cameras
 
 // Splash hide
 window.addEventListener("load", () => {

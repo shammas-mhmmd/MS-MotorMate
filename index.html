@@ -36,6 +36,7 @@
         <button class="tab-btn" data-tab="fuel">Fuel Log</button>
         <button class="tab-btn" data-tab="service">Service</button>
         <button class="tab-btn" data-tab="documents">Docs</button>
+        <button class="tab-btn" data-tab="drive">Drive</button>
     </nav>
 
     <main>
@@ -254,6 +255,53 @@
             <h2 class="section-title">Saved Documents</h2>
             <div id="docGrid" class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));">
                 <!-- Docs injected here -->
+            </div>
+        </section>
+
+        </section>
+
+        <!-- DRIVE / SAFETY SECTION -->
+        <section id="drive" class="tab">
+            <h2 class="section-title">Speed & Safety Radar</h2>
+
+            <div class="card"
+                style="text-align:center; padding: 40px 20px; background: linear-gradient(135deg, #1e293b, #0f172a);">
+                <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">CURRENT SPEED</div>
+                <div id="driveSpeed" style="font-size: 72px; font-weight: 800; color: #fff; line-height: 1;">0</div>
+                <div style="font-size: 18px; color: #64748b; margin-bottom: 30px;">km/h</div>
+
+                <div id="driveStatus"
+                    style="padding: 10px; border-radius: 8px; background: #22c55e; color: #000; font-weight: bold; margin-bottom: 20px;">
+                    SAFE - No Cameras Nearby
+                </div>
+
+                <p style="font-size: 12px; color: #888; margin-bottom: 20px;">
+                    <span id="driveLat">Lat: -</span> | <span id="driveLng">Lng: -</span>
+                </p>
+
+                <button class="primary-btn" onclick="markCameraLocation()" style="background: #eab308; color: #000;">⚠️
+                    Mark AI Camera Here</button>
+            </div>
+
+            <div class="card">
+                <h3>Radar Settings</h3>
+                <div class="care-item">
+                    <div class="care-title">Monitor Speed & Cameras</div>
+                    <button id="btnStartDrive" class="care-btn" onclick="toggleDriveMode()">Start</button>
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; color: #aaa;">
+                    ⚠️ Note: Requires GPS permission. Alerts depend on user-marked locations.
+                </div>
+            </div>
+
+            <h2 class="section-title">Known Cameras</h2>
+            <div class="card">
+                <div id="cameraList" style="max-height: 200px; overflow-y: auto;">
+                    <!-- List populated by JS -->
+                </div>
+                <button onclick="clearAllCameras()"
+                    style="width:100%; margin-top:10px; padding:8px; border:1px solid #ff4d4d; color:#ff4d4d; background:transparent; border-radius:6px;">Clear
+                    All Cameras</button>
             </div>
         </section>
 
