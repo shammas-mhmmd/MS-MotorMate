@@ -637,6 +637,14 @@ body.splash-done #splash {
     transform: translateY(0);
 }
 
+/* Vehicle Modal Type Switcher */
+.type-btn.active {
+    background: #38bdf8 !important;
+    color: #0f172a !important;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+}
+
 .fab-item {
     width: 42px;
     height: 42px;

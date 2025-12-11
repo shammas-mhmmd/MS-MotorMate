@@ -3,6 +3,7 @@
 // ===============================
 let fuelLogs = JSON.parse(localStorage.getItem("fuelLogs") || "[]");
 let serviceLogs = JSON.parse(localStorage.getItem("serviceLogs") || "[]");
+let documentLogs = []; // State for active vehicle documents
 
 // Charts
 let mileageChart = null;
@@ -56,12 +57,16 @@ function loadActiveVehicle() {
     fuelLogs = v.fuelLogs || [];
     serviceLogs = v.serviceLogs || [];
     careData = v.careData || {};
+    documentLogs = v.documentLogs || [];
 
     // keep legacy keys loosely in sync (optional)
     localStorage.setItem("fuelLogs", JSON.stringify(fuelLogs));
     localStorage.setItem("serviceLogs", JSON.stringify(serviceLogs));
     localStorage.setItem("vehicleProfile", JSON.stringify(vehicleProfile));
     localStorage.setItem("careData", JSON.stringify(careData));
+
+    // Refresh Dash
+    renderDocuments();
 }
 
 function saveActiveVehicle() {
@@ -73,7 +78,8 @@ function saveActiveVehicle() {
         name: vehicleProfile.name || old.name || `Vehicle ${activeVehicleIndex + 1}`,
         fuelLogs,
         serviceLogs,
-        careData
+        careData,
+        documentLogs
     };
 
     localStorage.setItem("vehicles", JSON.stringify(vehicles));
@@ -115,6 +121,7 @@ const CAR_DATABASE = {
     "Tata": ["Nexon", "Punch", "Tiago", "Tigor", "Harrier", "Safari", "Altroz", "Nexon EV", "Tiago EV"],
     "Mahindra": ["Thar", "Scorpio N", "Scorpio Classic", "XUV700", "XUV300", "Bolero", "Bolero Neo", "Marazzo"],
     "Toyota": ["Innova Crysta", "Innova Hycross", "Fortuner", "Glanza", "Urban Cruiser Hyryder", "Hilux", "Camry"],
+    "Ford": ["EcoSport", "Endeavour", "Figo", "Aspire", "Freestyle", "Fiesta", "Ikon"],
     "Kia": ["Seltos", "Sonet", "Carens", "EV6"],
     "Honda": ["City", "Amaze", "Elevate"],
     "Volkswagen": ["Virtus", "Taigun", "Tiguan"],
@@ -127,32 +134,174 @@ const CAR_DATABASE = {
     "Mercedes-Benz": ["C-Class", "E-Class", "A-Class", "GLA", "GLC", "GLE", "S-Class"]
 };
 
+const BIKE_DATABASE = {
+    "Hero": ["Splendor+", "HF Deluxe", "Glamour", "Passion", "Xtreme 125R", "Pleasure+", "Destini", "Xoom", "Karizma XMR"],
+    "Honda": ["Activa 6G", "Activa 125", "Shine", "SP 125", "Dio", "Unicorn", "Hness CB350", "CB350RS", "Hornet 2.0"],
+    "TVS": ["Jupiter", "Apache RTR 160", "Apache RTR 200", "Apache RR 310", "NTorq", "Raider", "Radeon", "Sport", "iQube", "Ronin"],
+    "Bajaj": ["Pulsar 150", "Pulsar NS200", "Pulsar N160", "Platina", "CT 110", "Dominar 400", "Chetak EV", "Avenger"],
+    "Royal Enfield": ["Classic 350", "Bullet 350", "Hunter 350", "Meteor 350", "Himalayan 450", "Interceptor 650", "Continental GT 650", "Super Meteor 650"],
+    "Yamaha": ["R15 V4", "MT-15 V2", "Fazer", "FZ-S", "Fascino", "Ray ZR", "Aerox 155"],
+    "Suzuki": ["Access 125", "Burgman Street", "Gixxer", "Gixxer SF", "V-Strom SX"],
+    "Ather": ["450X", "450S", "Rizta"],
+    "Ola": ["S1 Pro", "S1 Air", "S1 X"]
+};
+
+// SMART VARIANTS DATABASE (Example for Popular Models)
+// Structure: Brand -> Model -> [ {minYear, maxYear, variants: []} ]
+const SMART_VARIANTS_DB = {
+    "Maruti Suzuki": {
+        "Swift": [
+            { min: 2005, max: 2010, variants: ["LXi", "VXi", "ZXi", "LDi", "VDi", "ZDi"] },
+            { min: 2011, max: 2017, variants: ["LXi", "VXi", "ZXi", "LDi", "VDi", "ZDi", "RS"] },
+            { min: 2018, max: 2019, variants: ["LXi", "VXi", "ZXi", "ZXi+", "LDi", "VDi", "ZDi", "ZDi+", "AMT"] },
+            { min: 2020, max: 2024, variants: ["LXi", "VXi", "ZXi", "ZXi+", "CNG"] }
+        ],
+        "Baleno": [
+            { min: 2015, max: 2019, variants: ["Sigma", "Delta", "Zeta", "Alpha", "RS"] },
+            { min: 2020, max: 2024, variants: ["Sigma", "Delta", "Zeta", "Alpha", "CNG"] }
+        ],
+        "Brezza": [
+            { min: 2016, max: 2019, variants: ["LDi", "VDi", "ZDi", "ZDi+"] },
+            { min: 2020, max: 2024, variants: ["LXi", "VXi", "ZXi", "ZXi+", "CNG"] }
+        ]
+    },
+    "Hyundai": {
+        "Creta": [
+            { min: 2015, max: 2019, variants: ["E", "E+", "S", "SX", "SX(O)", "1.4 CRDi", "1.6 CRDi", "1.6 VTVT"] },
+            { min: 2020, max: 2024, variants: ["E", "EX", "S", "S+", "SX", "SX(O)", "SX Tech", "Knight Edition", "N Line"] }
+        ],
+        "i20": [
+            { min: 2014, max: 2019, variants: ["Era", "Magna", "Sportz", "Asta", "Asta(O)", "Active"] },
+            { min: 2020, max: 2024, variants: ["Magna", "Sportz", "Asta", "Asta(O)", "N Line"] }
+        ]
+    },
+    "Tata": {
+        "Nexon": [
+            { min: 2017, max: 2019, variants: ["XE", "XM", "XT", "XZ", "XZ+", "Kraz"] },
+            { min: 2020, max: 2023, variants: ["XE", "XM", "XM(S)", "XZ", "XZ+", "XZ+(S)", "Jet", "Kaziranga", "Dark"] },
+            { min: 2023, max: 2024, variants: ["Smart", "Smart+", "Pure", "Pure S", "Creative", "Creative+", "Fearless", "Fearless+"] }
+        ],
+        "Punch": [
+            { min: 2021, max: 2024, variants: ["Pure", "Adventure", "Accomplished", "Creative", "Camo", "CNG"] }
+        ]
+    },
+    "Mahindra": {
+        "Thar": [
+            { min: 2010, max: 2019, variants: ["DI 2WD", "DI 4WD", "CRDe 4WD"] },
+            { min: 2020, max: 2024, variants: ["AX(O)", "LX", "RWD", "4WD", "Earth Edition"] }
+        ],
+        "XUV700": [
+            { min: 2021, max: 2024, variants: ["MX", "AX3", "AX5", "AX7", "AX7 L", "Blaze Edition"] }
+        ]
+    },
+    "Ford": {
+        "EcoSport": [
+            { min: 2013, max: 2015, variants: ["Ambiente", "Trend", "Titanium", "Titanium(O)"] },
+            { min: 2016, max: 2021, variants: ["Ambiente", "Trend", "Trend+", "Titanium", "Titanium+", "S", "SE", "Thunder"] }
+        ],
+        "Endeavour": [
+            { min: 2003, max: 2015, variants: ["XLT", "Limited", "Hurricane", "3.0L 4x4"] },
+            { min: 2016, max: 2019, variants: ["Trend", "Titanium", "2.2L 4x2", "3.2L 4x4"] },
+            { min: 2020, max: 2021, variants: ["Titanium+", "Sport", "2.0L EcoBlue"] }
+        ],
+        "Figo": [
+            { min: 2010, max: 2015, variants: ["LXi", "VXi", "ZXi", "Titanium"] },
+            { min: 2015, max: 2021, variants: ["Base", "Ambiente", "Trend", "Titanium", "Titanium Blu", "Freestyle"] }
+        ]
+    }
+};
+
+const GENERIC_VARIANTS = ["Base Model", "Mid Variant", "Top Model", "Automatic", "Manual", "CNG", "Diesel Base", "Diesel Top"];
+const BIKE_GENERIC_VARIANTS = ["Standard", "Drum", "Disc", "Alloy", "Dual Channel ABS", "Connected"];
+
+function getVariants(type, brand, model, year) {
+    if (type === "Car" && SMART_VARIANTS_DB[brand] && SMART_VARIANTS_DB[brand][model]) {
+        const history = SMART_VARIANTS_DB[brand][model];
+        const match = history.find(h => year >= h.min && year <= h.max);
+        if (match) return match.variants;
+    }
+    if (type === "Bike") return BIKE_GENERIC_VARIANTS;
+    return GENERIC_VARIANTS;
+}
+
 let isManualVehicleMode = false;
 let editingVehicleIndex = null;
+let currentVehicleType = "Car"; // Default Car
 
 function initVehicleModal() {
     const brandSelect = document.getElementById("v_brand_select");
     const modelSelect = document.getElementById("v_model_select");
     const yearSelect = document.getElementById("v_year_select");
+    const variantSelect = document.getElementById("v_variant"); // Select
     const manualBtn = document.getElementById("manualToggleBtn");
+
+    // Type Buttons
+    const btnCar = document.getElementById("typeAccCar");
+    const btnBike = document.getElementById("typeAccBike");
 
     if (!brandSelect || !yearSelect) return;
 
-    // Populate Brands
-    brandSelect.innerHTML = '<option value="">Select Brand</option>';
-    Object.keys(CAR_DATABASE).sort().forEach(brand => {
-        const opt = document.createElement("option");
-        opt.value = brand;
-        opt.innerText = brand;
-        brandSelect.appendChild(opt);
-    });
+    // Helper: Reset Variant
+    const resetVariants = () => {
+        if (variantSelect) {
+            variantSelect.innerHTML = '<option value="">Select Year First</option>';
+            // variantSelect.disabled = true; // Optional: disable if strict
+        }
+    };
 
-    // Brand Change Event
+    // 1. Logic to Populate Brands based on Type
+    const populateBrands = (type) => {
+        currentVehicleType = type;
+        const DB = (type === "Car") ? CAR_DATABASE : BIKE_DATABASE;
+
+        // Reset Brand Dropdown
+        brandSelect.innerHTML = '<option value="">Select Brand</option>';
+        Object.keys(DB).sort().forEach(brand => {
+            const opt = document.createElement("option");
+            opt.value = brand;
+            opt.innerText = brand;
+            brandSelect.appendChild(opt);
+        });
+
+        // Reset Model Dropdown
+        modelSelect.innerHTML = '<option value="">Select Brand First</option>';
+        modelSelect.disabled = true;
+
+        resetVariants();
+
+        // Update Labels (Dynamic)
+        const lgBrand = document.getElementById("lbl_brand");
+        const lgModel = document.getElementById("lbl_model");
+        if (lgBrand) lgBrand.innerText = `${type} Brand`;
+        if (lgModel) lgModel.innerText = `${type} Model`;
+    };
+
+    // 2. Initial Load
+    populateBrands("Car");
+
+    // 3. Button Events
+    if (btnCar && btnBike) {
+        btnCar.addEventListener("click", () => {
+            btnCar.classList.add("active");
+            btnBike.classList.remove("active");
+            populateBrands("Car");
+        });
+
+        btnBike.addEventListener("click", () => {
+            btnBike.classList.add("active");
+            btnCar.classList.remove("active");
+            populateBrands("Bike");
+        });
+    }
+
+    // 4. Brand Change Logic
     brandSelect.addEventListener("change", (e) => {
         const brand = e.target.value;
+        const DB = (currentVehicleType === "Car") ? CAR_DATABASE : BIKE_DATABASE;
+
         modelSelect.innerHTML = '<option value="">Select Model</option>';
-        if (brand && CAR_DATABASE[brand]) {
-            CAR_DATABASE[brand].sort().forEach(model => {
+        if (brand && DB[brand]) {
+            DB[brand].sort().forEach(model => {
                 const opt = document.createElement("option");
                 opt.value = model;
                 opt.innerText = model;
@@ -162,9 +311,20 @@ function initVehicleModal() {
         } else {
             modelSelect.disabled = true;
         }
+        resetVariants();
     });
 
-    // Populate Years
+    // 5. Model Change Logic
+    modelSelect.addEventListener("change", () => {
+        resetVariants();
+        // If year is already selected, update variants
+        if (yearSelect.value) updateVariantsList();
+        else {
+            if (variantSelect) variantSelect.innerHTML = '<option value="">Select Year</option>';
+        }
+    });
+
+    // 5. Populate Years
     yearSelect.innerHTML = '<option value="">Select Year</option>';
     const currentYear = new Date().getFullYear();
     for (let y = currentYear + 1; y >= 1980; y--) {
@@ -174,7 +334,32 @@ function initVehicleModal() {
         yearSelect.appendChild(opt);
     }
 
-    // Toggle Manual Mode
+    // 6. Year Change -> Populate Variants
+    function updateVariantsList() {
+        if (!brandSelect.value || !modelSelect.value || !yearSelect.value) return;
+
+        const variants = getVariants(
+            currentVehicleType,
+            brandSelect.value,
+            modelSelect.value,
+            Number(yearSelect.value)
+        );
+
+        if (variantSelect) {
+            variantSelect.innerHTML = '<option value="">Select Variant</option>';
+            variants.forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = v;
+                opt.innerText = v;
+                variantSelect.appendChild(opt);
+            });
+            variantSelect.disabled = false;
+        }
+    }
+
+    yearSelect.addEventListener("change", updateVariantsList);
+
+    // 7. Manual Toggle
     if (manualBtn) manualBtn.addEventListener("click", toggleVehicleMode);
 }
 
@@ -208,14 +393,15 @@ function openAddVehicleModal() {
     document.getElementById("v_interval").value = "";
 
     // Reset Dropdowns
-    document.getElementById("v_brand_select").value = "";
-    document.getElementById("v_model_select").innerHTML = '<option value="">Select Brand First</option>';
-    document.getElementById("v_model_select").disabled = true;
     document.getElementById("v_year_select").value = "";
 
     // Reset Manual Inputs
     document.getElementById("v_brand_input").value = "";
     document.getElementById("v_model_input").value = "";
+
+    // Reset to Car Default Logic
+    const btnCar = document.getElementById("typeAccCar");
+    if (btnCar) btnCar.click(); // This will trigger populateBrands("Car") via listener
 
     // Force List Mode
     isManualVehicleMode = true; // trick toggle
@@ -257,6 +443,7 @@ function fullRefreshUI() {
     updateCareReminders();
     updateInsightsPanel();
     updateCharts();
+    renderDocuments();
 }
 
 // ===============================
@@ -1005,6 +1192,160 @@ if (installBtn) {
 }
 
 // ===============================
+// DOCUMENT VAULT LOGIC
+// ===============================
+
+function openDocModal() {
+    document.getElementById("docModal").classList.add("show");
+    document.getElementById("d_title").value = "";
+    document.getElementById("d_file").value = "";
+    document.getElementById("d_previewHelp").innerText = "";
+}
+
+function closeDocModal() {
+    document.getElementById("docModal").classList.remove("show");
+}
+
+function closeViewDoc() {
+    document.getElementById("viewDocModal").classList.remove("show");
+}
+
+function renderDocuments() {
+    const grid = document.getElementById("docGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    if (!documentLogs || documentLogs.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#aaa; font-style:italic; padding:20px;">No documents saved yet.</div>';
+        return;
+    }
+
+    documentLogs.forEach((doc, index) => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.style.padding = "10px";
+        div.style.textAlign = "center";
+
+        div.innerHTML = `
+            <div style="height: 100px; overflow: hidden; border-radius: 6px; margin-bottom: 10px; background: #000; display:flex; align-items:center; justify-content:center;">
+                <img src="${doc.data}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${doc.title}</div>
+            <button onclick="viewDocument(${index})" style="width:100%; padding: 5px; background: rgba(255,255,255,0.1); border:none; color: #38bdf8; cursor:pointer; border-radius:4px; font-size:12px;">View</button>
+        `;
+        grid.appendChild(div);
+    });
+}
+
+async function saveDocument() {
+    const title = document.getElementById("d_title").value.trim();
+    const fileInput = document.getElementById("d_file");
+    const file = fileInput.files[0];
+
+    if (!title || !file) {
+        alert("Please provide both a title and an image.");
+        return;
+    }
+
+    // Checking 5MB limit loosely here, but compression is key
+    if (file.size > 5 * 1024 * 1024) {
+        alert("File is too large. Please choose an image under 5MB.");
+        return;
+    }
+
+    const btn = document.querySelector("#docModal .primary-btn");
+    const originalText = btn.innerText;
+    btn.innerText = "Compressing & Saving...";
+    btn.disabled = true;
+
+    try {
+        const compressedData = await compressImage(file);
+
+        // Save
+        documentLogs.push({
+            id: Date.now(),
+            title: title,
+            data: compressedData
+        });
+
+        saveActiveVehicle();
+        renderDocuments();
+        closeDocModal();
+
+        // Toast
+        if (typeof Cloud !== 'undefined' && Cloud.showToast) {
+            Cloud.showToast("Document saved securely!");
+        } else {
+            alert("Document saved!");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Failed to save image. It might be too large even after compression.");
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+function viewDocument(index) {
+    const doc = documentLogs[index];
+    if (!doc) return;
+
+    const modal = document.getElementById("viewDocModal");
+    const img = document.getElementById("viewDocImg");
+    const delBtn = document.getElementById("deleteDocBtn");
+
+    img.src = doc.data;
+    delBtn.onclick = () => deleteDocument(index);
+
+    modal.classList.add("show");
+}
+
+function deleteDocument(index) {
+    if (confirm("Are you sure you want to delete this document?")) {
+        documentLogs.splice(index, 1);
+        saveActiveVehicle(); // Auto syncs
+        renderDocuments();
+        closeViewDoc();
+    }
+}
+
+// Image Compression Helper
+function compressImage(file, maxWidth = 1000, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                let width = img.width;
+                let height = img.height;
+
+                // Scale down
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Convert to Base64 JPEG
+                resolve(canvas.toDataURL("image/jpeg", quality));
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
+    });
+}
+
+
+// ===============================
 // INITIAL LOAD (MUST BE LAST)
 // ===============================
 ensureVehiclesInitialized();
@@ -1019,6 +1360,7 @@ updateVehicleBar();
 updateCareReminders();
 updateInsightsPanel();
 updateCharts();
+renderDocuments(); // init docs
 
 // Splash hide
 window.addEventListener("load", () => {

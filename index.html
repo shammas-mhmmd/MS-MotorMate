@@ -35,6 +35,7 @@
         <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
         <button class="tab-btn" data-tab="fuel">Fuel Log</button>
         <button class="tab-btn" data-tab="service">Service</button>
+        <button class="tab-btn" data-tab="documents">Docs</button>
     </nav>
 
     <main>
@@ -231,7 +232,63 @@
 
 
 
+        </section>
+
+        <!-- DOCUMENTS SECTION -->
+        <section id="documents" class="tab">
+            <h2 class="section-title">Documents Vault</h2>
+            <p class="tab-subtitle">Securely save your vehicle documents (RC, DL, Insurance) for quick access.</p>
+
+            <!-- ADD DOC CARD -->
+            <div class="card"
+                style="text-align:center; padding: 30px; border: 2px dashed rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);">
+                <div style="font-size: 40px; margin-bottom: 10px;">📂</div>
+                <h3 style="margin-bottom: 10px;">Upload Document</h3>
+                <p style="color: #aaa; font-size: 13px; margin-bottom: 20px;">Use for DL, RC, Insurance, Pollution Cert,
+                    etc.</p>
+                <button class="primary-btn" onclick="openDocModal()" style="max-width: 200px; margin: 0 auto;">+ Add
+                    Document</button>
+            </div>
+
+            <!-- DOCUMENTS GRID -->
+            <h2 class="section-title">Saved Documents</h2>
+            <div id="docGrid" class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));">
+                <!-- Docs injected here -->
+            </div>
+        </section>
+
     </main>
+
+    <!-- DOCUMENT MODAL (Add/View) -->
+    <div id="docModal" class="modal">
+        <div class="modal-content">
+            <h2>Add Document</h2>
+            <label>Document Title</label>
+            <input type="text" id="d_title" placeholder="e.g. RC Front">
+
+            <label>Select Image (Max 5MB)</label>
+            <input type="file" id="d_file" accept="image/*">
+            <div id="d_previewHelp" style="font-size:12px; color:#aaa; margin-top:5px;"></div>
+
+            <button class="primary-btn" onclick="saveDocument()">Save Document</button>
+            <button class="close-modal-btn" onclick="closeDocModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- VIEW FULL IMAGE MODAL -->
+    <div id="viewDocModal" class="modal" style="z-index: 10001; background: rgba(0,0,0,0.95);">
+        <div
+            style="position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+            <img id="viewDocImg" src=""
+                style="max-width: 95%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+            <div style="margin-top: 20px; display: flex; gap: 20px;">
+                <button onclick="closeViewDoc()"
+                    style="padding: 10px 20px; background: #fff; color: #000; border: none; border-radius: 30px; font-weight: bold; cursor: pointer;">Close</button>
+                <button id="deleteDocBtn" onclick=""
+                    style="padding: 10px 20px; background: #ff4d4d; color: #fff; border: none; border-radius: 30px; font-weight: bold; cursor: pointer;">Delete</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Floating Action Button (Radial Menu) -->
     <div class="fab-container">
@@ -254,20 +311,33 @@
                 <h2>Vehicle Profile</h2>
                 <button type="button" id="manualToggleBtn"
                     style="font-size:11px; padding:4px 8px; background:rgba(255,255,255,0.1); border:none; color:#38bdf8; cursor:pointer; border-radius:6px;">
-                    Can't find car? Add Manually
+                    Can't find vehicle? Add Manually
                 </button>
+            </div>
+
+            <!-- TYPE SWITCHER -->
+            <div class="type-switcher"
+                style="display:flex; gap:10px; margin-bottom:15px; background:rgba(255,255,255,0.1); padding:4px; border-radius:10px;">
+                <button type="button" id="typeAccCar" class="type-btn active"
+                    style="flex:1; padding:8px; border:none; border-radius:8px; background:transparent; color:#fff; cursor:pointer;">🚗
+                    Car</button>
+                <button type="button" id="typeAccBike" class="type-btn"
+                    style="flex:1; padding:8px; border:none; border-radius:8px; background:transparent; color:#aaa; cursor:pointer;">🏍️
+                    Bike</button>
             </div>
 
             <!-- SELECTION MODE -->
             <div id="selectionMode">
-                <label>Car Brand</label>
+                <label id="lbl_brand">Brand</label>
                 <select id="v_brand_select"></select>
 
-                <label>Car Model</label>
+                <label id="lbl_model">Model</label>
                 <select id="v_model_select" disabled>
                     <option value="">Select Brand First</option>
                 </select>
             </div>
+
+
 
             <!-- MANUAL MODE (Hidden by default) -->
             <div id="manualMode" style="display:none;">
@@ -295,8 +365,10 @@
                 </div>
             </div>
 
-            <label>Variant / Trim</label>
-            <input type="text" id="v_variant" placeholder="e.g., ZXi Plus / Titanium">
+            <label>Variant</label>
+            <select id="v_variant">
+                <option value="">Select Model & Year First</option>
+            </select>
 
             <label>Registration Number</label>
             <input type="text" id="v_reg" placeholder="e.g., KL 18 XX 7600" style="text-transform: uppercase;">
