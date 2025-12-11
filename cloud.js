@@ -5,68 +5,33 @@ const Cloud = {
     db: null,
     user: null,
 
+    // Hardcoded Config for Public App
+    config: {
+        apiKey: "AIzaSyD_q5kf3ALaE8hi06xZEzvcbMhkEjxCFGU",
+        authDomain: "motormate-one.firebaseapp.com",
+        projectId: "motormate-one",
+        storageBucket: "motormate-one.firebasestorage.app",
+        messagingSenderId: "193216239840",
+        appId: "1:193216239840:web:49c5e92237b6bd79eb5885",
+        measurementId: "G-YTBE6WKGNF"
+    },
+
     // Initialize Firebase
     init: function () {
-        const storedConfig = localStorage.getItem("firebaseConfig");
-
-        if (storedConfig) {
+        if (!firebase.apps.length) {
             try {
-                const config = JSON.parse(storedConfig);
-                if (!firebase.apps.length) {
-                    this.app = firebase.initializeApp(config);
-                    this.auth = firebase.auth();
-                    this.db = firebase.firestore();
-
-                    this.setupAuthListener();
-                }
+                this.app = firebase.initializeApp(this.config);
+                this.auth = firebase.auth();
+                this.db = firebase.firestore();
+                this.setupAuthListener();
             } catch (e) {
                 console.error("Firebase Init Error:", e);
                 this.updateStatus("Error", "error");
             }
-        } else {
-            this.updateStatus("Setup Needed", "offline");
         }
 
-        // Setup UI Listeners
         this.setupUI();
-
-        // Force Check on Load
         this.refreshModalState();
-    },
-
-    refreshModalState: function () {
-        const modal = document.getElementById("cloudModal");
-        const closeBtn = modal.querySelector(".close-modal-btn");
-        const appContent = document.querySelector("main"); // Optional: blur background
-
-        if (!localStorage.getItem("firebaseConfig")) {
-            // CASE 1: No Config -> Force Setup
-            this.showSection("setup");
-            modal.classList.add("show");
-            if (closeBtn) closeBtn.style.display = "none";
-
-        } else if (!this.user) {
-            // CASE 2: Config Exists, No User -> Force Login
-            this.showSection("auth");
-            modal.classList.add("show");
-            if (closeBtn) closeBtn.style.display = "none";
-
-        } else {
-            // CASE 3: Logged In -> Allow Access
-            this.showSection("dashboard");
-            if (closeBtn) closeBtn.style.display = "block";
-
-            // Auto-close modal if we just logged in (and it was forced open)
-            // We check if the close button was previously hidden to know if it was forced
-            // Or simply strict rule: if logged in, do not force open.
-            // But if the user opened it manually (to sync), we keep it open.
-            // We can detect "manual open" vs "forced open", but for now, let's just NOT force it.
-            // If it is open and we are logged in, we let the user close it.
-            // BUT, if we just transitioned from "Forced Auth" -> "Login Success", we should close it for convenience.
-
-            // Simple heuristic: If we are in Dashboard section, let user control it.
-            // If the user IS logged in, we don't force 'show'.
-        }
     },
 
     setupAuthListener: function () {
@@ -76,17 +41,15 @@ const Cloud = {
                 this.updateStatus("Online", "online");
                 document.getElementById("currentUserEmail").innerText = user.email;
 
-                // If we were blocked, now we unblock
+                // If logged in, close modal if it's open
                 const modal = document.getElementById("cloudModal");
                 if (modal.classList.contains("show")) {
-                    // Only auto-close if we were likely in the auth flow
-                    // We'll just close it to be safe and let them re-open if they want to sync manually
-                    this.refreshModalState(); // Update buttons first
                     setTimeout(() => closeCloudModal(), 500);
                 }
+                this.refreshModalState();
             } else {
                 this.updateStatus("Logged Out", "offline");
-                this.refreshModalState(); // Will force open
+                this.refreshModalState(); // Force login
             }
         });
     },
@@ -95,7 +58,6 @@ const Cloud = {
     setupUI: function () {
         const btn = document.getElementById("cloudBtn");
         const modal = document.getElementById("cloudModal");
-
         if (btn) {
             btn.addEventListener("click", () => {
                 modal.classList.add("show");
@@ -104,12 +66,29 @@ const Cloud = {
         }
     },
 
+    refreshModalState: function () {
+        const modal = document.getElementById("cloudModal");
+        const closeBtn = modal.querySelector(".close-modal-btn");
+
+        if (!this.user) {
+            // Not Logged In -> Force Auth Section
+            this.showSection("auth");
+            modal.classList.add("show");
+            if (closeBtn) closeBtn.style.display = "none";
+        } else {
+            // Logged In -> Show Dashboard
+            this.showSection("dashboard");
+            if (closeBtn) closeBtn.style.display = "block";
+        }
+    },
+
     showSection: function (sectionName) {
         ['cloudSetupSection', 'cloudAuthSection', 'cloudDashboardSection'].forEach(id => {
-            document.getElementById(id).style.display = "none";
+            const el = document.getElementById(id);
+            if (el) el.style.display = "none";
         });
 
-        if (sectionName === 'setup') document.getElementById("cloudSetupSection").style.display = "block";
+        if (sectionName === 'setup') { /* Dead path */ }
         if (sectionName === 'auth') document.getElementById("cloudAuthSection").style.display = "block";
         if (sectionName === 'dashboard') document.getElementById("cloudDashboardSection").style.display = "block";
     },
@@ -119,35 +98,6 @@ const Cloud = {
         if (badge) {
             badge.innerText = text;
             badge.className = `status-badge ${type}`;
-        }
-    },
-
-    // ACTIONS
-    saveConfig: function () {
-        const input = document.getElementById("firebaseConfigInput").value;
-        const config = {};
-
-        // Robust extraction for specific Firebase keys
-        // Matches key: "value" or key: 'value'
-        const keys = ["apiKey", "authDomain", "projectId", "storageBucket", "messagingSenderId", "appId", "measurementId"];
-
-        let foundAny = false;
-        keys.forEach(key => {
-            const regex = new RegExp(key + '\\s*:\\s*["\']([^"\']+)["\']');
-            const match = input.match(regex);
-            if (match) {
-                config[key] = match[1];
-                foundAny = true;
-            }
-        });
-
-        if (foundAny && config.apiKey) {
-            localStorage.setItem("firebaseConfig", JSON.stringify(config));
-            alert("Configuration saved! Reloading...");
-            location.reload();
-        } else {
-            console.error("Parsed Input:", input);
-            alert("Could not detect a valid configuration.\n\nPlease make sure you copied the text that looks like:\napiKey: \"...\",\nauthDomain: \"...\"");
         }
     },
 
@@ -163,15 +113,12 @@ const Cloud = {
     login: function () {
         const email = document.getElementById("authEmail").value;
         const pass = document.getElementById("authPass").value;
-
-        this.auth.signInWithEmailAndPassword(email, pass)
-            .catch(e => alert(e.message));
+        this.auth.signInWithEmailAndPassword(email, pass).catch(e => alert(e.message));
     },
 
     register: function () {
         const email = document.getElementById("authEmail").value;
         const pass = document.getElementById("authPass").value;
-
         this.auth.createUserWithEmailAndPassword(email, pass)
             .then(() => alert("Account created!"))
             .catch(e => alert(e.message));
@@ -212,8 +159,6 @@ const Cloud = {
                     localStorage.setItem("vehicles", JSON.stringify(data.vehicles));
                     localStorage.setItem("activeVehicleIndex", data.activeVehicleIndex);
 
-                    // Reload internal state by calling global function from script.js
-                    // We need to reload page to be safe or call init functions
                     if (typeof loadActiveVehicle === 'function') {
                         loadActiveVehicle();
                         refreshVehicleSelect();
@@ -222,7 +167,7 @@ const Cloud = {
                     this.msg("✅ Download Successful!");
                 }
             } else {
-                this.msg("⚠️ No data fonud in cloud.");
+                this.msg("⚠️ No data found in cloud.");
             }
         } catch (e) {
             this.msg("❌ Download Failed: " + e.message);
