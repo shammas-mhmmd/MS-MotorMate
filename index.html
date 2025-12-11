@@ -287,19 +287,22 @@
     </div>
 
     <!-- CLOUD SYNC MODAL -->
+    <!-- CLOUD SYNC MODAL -->
     <div id="cloudModal" class="modal">
         <div class="modal-content">
-            <h2>Cloud Sync <span id="cloudStatusBadge" class="status-badge">Offline</span></h2>
-
-            <!-- SECTION: SETUP (If no API key) -->
-            <div id="cloudSetupSection" style="display:none;">
-                <p class="modal-info">To enable sync, paste your Firebase Config object below. You can get this from <a
-                        href="https://console.firebase.google.com/" target="_blank" style="color:#60a5fa;">Firebase
-                        Console</a> > Project Settings.</p>
-                <textarea id="firebaseConfigInput" placeholder='{"apiKey": "...", "authDomain": "...", ...}'
-                    rows="5"></textarea>
-                <button class="primary-btn" onclick="Cloud.saveConfig()">Save Configuration</button>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div
+                    style="font-size: 32px; font-weight: 800; background: linear-gradient(45deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    MS</div>
+                <h2
+                    style="margin: 0; font-size: 22px; background: none; -webkit-text-fill-color: initial; color: #fff;">
+                    MotorMate</h2>
+                <div id="cloudStatusBadge" class="status-badge" style="display:inline-block; margin-top:5px;">Offline
+                </div>
             </div>
+
+            <!-- SECTION: SETUP (Hidden/Dead) -->
+            <div id="cloudSetupSection" style="display:none;"></div>
 
             <!-- SECTION: AUTH (If config exists but not logged in) -->
             <div id="cloudAuthSection" style="display:none;">
@@ -309,9 +312,16 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Email</label>
+                    <label>Email Address</label>
                     <input type="email" id="authEmail" placeholder="your@email.com">
                 </div>
+
+                <!-- Mobile Number -->
+                <div class="form-group" id="mobileGroup" style="display:none;">
+                    <label>Mobile Number</label>
+                    <input type="tel" id="authMobile" placeholder="+91 98765 43210">
+                </div>
+
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" id="authPass" placeholder="******">

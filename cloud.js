@@ -108,6 +108,12 @@ const Cloud = {
         const btn = document.getElementById("authBtn");
         btn.innerText = mode === 'login' ? "Login" : "Register";
         btn.onclick = mode === 'login' ? () => this.login() : () => this.register();
+
+        // Show/Hide Mobile Number based on mode
+        const mobileGroup = document.getElementById("mobileGroup");
+        if (mobileGroup) {
+            mobileGroup.style.display = mode === 'register' ? 'block' : 'none';
+        }
     },
 
     login: function () {
