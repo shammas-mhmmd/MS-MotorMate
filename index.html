@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MS MotorMate</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <!-- Splash Screen -->
+    <div id="splash">
+        <div class="splash-inner">
+            <div class="splash-logo">MS</div>
+            <div class="splash-title">MotorMate</div>
+            <div class="splash-subtitle">Smart Car Companion</div>
+        </div>
+    </div>
+    <header>
+        <div class="header-top">
+            <h1>MS MotorMate</h1>
+            <button id="cloudBtn" class="cloud-btn" title="Cloud Sync">☁️</button>
+        </div>
+        <p>Your Smart Car Companion</p>
+        <button id="installBtn" class="install-btn">Install App</button>
+    </header>
+
+    <nav>
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="fuel">Fuel Log</button>
+        <button class="tab-btn" data-tab="service">Service</button>
+    </nav>
+
+    <main>
+
+        <!-- DASHBOARD -->
+        <section id="dashboard" class="tab active">
+            <!-- VEHICLE SWITCHER -->
+            <div class="vehicle-switcher">
+                <div class="vehicle-switcher-left">
+                    <span class="vehicle-switcher-label">Vehicle</span>
+                    <select id="vehicleSelect">
+                        <!-- options will be added by JS -->
+                    </select>
+                </div>
+                <button class="vehicle-add-btn">+ Add</button>
+            </div>
+            <!-- VEHICLE PROFILE BAR -->
+            <div class="vehicle-bar">
+                <div class="vehicle-text">
+                    <div id="vehicleNameDisplay" class="vehicle-name">Your Vehicle</div>
+                    <div id="vehicleMetaDisplay" class="vehicle-meta">Tap edit to add details</div>
+                </div>
+                <button class="vehicle-edit-btn" onclick="openVehicleModal()">Edit</button>
+            </div>
+
+            <!-- CARE REMINDERS -->
+            <div class="care-reminders">
+                <h3>Care Reminders</h3>
+
+                <div class="care-item">
+                    <div>
+                        <div class="care-title">Car Wash</div>
+                        <div class="care-status" id="washStatus">Tap button to start tracking</div>
+                    </div>
+                    <button class="care-btn" onclick="markWashed()">Washed Today</button>
+                </div>
+
+                <div class="care-item">
+                    <div>
+                        <div class="care-title">Tyre Pressure</div>
+                        <div class="care-status" id="tyreStatus">Tap button to start tracking</div>
+                    </div>
+                    <button class="care-btn" onclick="markTyreChecked()">Checked Today</button>
+                </div>
+            </div>
+
+            <!-- MAIN DASHBOARD CARDS -->
+            <div class="card-grid">
+                <div class="card">
+                    <h3>Total Distance</h3>
+                    <p id="totalDistance">0 km</p>
+                </div>
+                <div class="card">
+                    <h3>Average Mileage</h3>
+                    <p id="avgMileage">0 km/l</p>
+                </div>
+                <div class="card">
+                    <h3>Total Fuel Cost</h3>
+                    <p id="totalCost">₹0</p>
+                </div>
+                <div class="card">
+                    <h3>Cost Per KM</h3>
+                    <p id="costPerKm">₹0</p>
+                </div>
+            </div>
+
+            <!-- SMART STATS CARDS -->
+            <div class="card-grid">
+                <div class="card">
+                    <h3>Best Mileage</h3>
+                    <p id="bestMileage">0 km/l</p>
+                </div>
+
+                <div class="card">
+                    <h3>Worst Mileage</h3>
+                    <p id="worstMileage">0 km/l</p>
+                </div>
+
+                <div class="card">
+                    <h3>Total Refills</h3>
+                    <p id="totalRefills">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Total Services</h3>
+                    <p id="totalServices">0</p>
+                </div>
+            </div>
+
+            <!-- RESET ALL DATA BUTTON -->
+            <button onclick="resetAllData()" class="danger-btn">
+                Reset All Data (this device only)
+            </button>
+
+            <!-- SMART INSIGHTS -->
+            <div class="insights-card">
+                <h3>Smart Insights</h3>
+                <ul id="insightsList"></ul>
+            </div>
+
+            <!-- CHARTS -->
+            <h2 class="section-title">Fuel & Mileage Overview</h2>
+            <div class="chart-wrapper">
+                <canvas id="mileageChart"></canvas>
+            </div>
+
+
+            <div class="chart-wrapper">
+                <canvas id="costChart"></canvas>
+            </div>
+
+            <!-- RECENT ENTRIES -->
+            <h2 class="section-title">Recent Fuel Entries</h2>
+            <div id="recentFuel"></div>
+
+            <h2 class="section-title">Recent Service Entries</h2>
+            <div id="recentService"></div>
+        </section>
+
+
+        <!-- FUEL LOG -->
+        <section id="fuel" class="tab">
+
+            <h2 class="section-title">Fuel Log</h2>
+            <p class="tab-subtitle">Add each refill and let MotorMate calculate mileage and fuel costs for you.</p>
+
+            <!-- FUEL FORM CARD -->
+            <div class="card">
+                <h3>Add Fuel Entry</h3>
+                <div class="form-group">
+                    <label for="f_odo">Odometer Reading (km)</label>
+                    <input type="number" id="f_odo" placeholder="Eg: 54230">
+                </div>
+                <div class="form-group">
+                    <label for="f_litres">Fuel Filled (litres)</label>
+                    <input type="number" id="f_litres" step="0.01" placeholder="Eg: 35.5">
+                </div>
+                <div class="form-group">
+                    <label for="f_price">Price per Litre (₹)</label>
+                    <input type="number" id="f_price" step="0.01" placeholder="Eg: 105.40">
+                </div>
+
+                <button class="primary-btn" onclick="addFuel()">Save Fuel Entry</button>
+                <button class="export-btn" onclick="exportFuelCSV()">Export Fuel Log as CSV</button>
+            </div>
+
+            <!-- FUEL LIST CARD -->
+            <h2 class="section-title">Fuel History</h2>
+            <div class="card">
+                <div id="fuelList">
+                    <!-- fuel entries will appear here -->
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- SERVICES SECTION -->
+        <section id="service" class="tab">
+
+            <h2 class="section-title">Service Log</h2>
+            <p class="tab-subtitle">Track each service to understand long-term maintenance cost of your vehicle.</p>
+
+            <!-- SERVICE FORM CARD -->
+            <div class="card">
+                <h3>Add Service Entry</h3>
+                <div class="form-group">
+                    <label for="s_odo">Odometer Reading (km)</label>
+                    <input type="number" id="s_odo" placeholder="Eg: 60000">
+                </div>
+                <div class="form-group">
+                    <label for="s_type">Service Type</label>
+                    <input type="text" id="s_type" placeholder="Eg: Full service, Oil change">
+                </div>
+                <div class="form-group">
+                    <label for="s_cost">Service Cost (₹)</label>
+                    <input type="number" id="s_cost" step="0.01" placeholder="Eg: 3500">
+                </div>
+
+                <button class="primary-btn" onclick="addService()">Save Service Entry</button>
+                <button class="export-btn" onclick="exportServiceCSV()">Export Service Log as CSV</button>
+            </div>
+
+            <!-- SERVICE LIST CARD -->
+            <h2 class="section-title">Service History</h2>
+            <div class="card">
+                <div id="serviceList">
+                    <!-- service entries will appear here -->
+                </div>
+            </div>
+
+        </section>
+
+
+
+
+    </main>
+
+    <!-- Floating Action Button (Radial Menu) -->
+    <div class="fab-container">
+        <button class="fab-main" id="fabMain">+</button>
+
+        <div class="fab-menu" id="fabMenu">
+            <button class="fab-item" data-action="fuel" title="Add Fuel">⛽</button>
+            <button class="fab-item" data-action="service" title="Add Service">🛠</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Your Scripts -->
+    <!-- ===========================
+     VEHICLE PROFILE MODAL
+     =========================== -->
+    <div id="vehicleModal" class="modal">
+        <div class="modal-content">
+            <h2>Edit Vehicle Details</h2>
+
+            <label>Vehicle Name</label>
+            <input type="text" id="v_name" placeholder="e.g., Baleno, Swift, Creta">
+
+            <label>Fuel Type</label>
+            <select id="v_fuel">
+                <option value="Petrol">Petrol</option>
+                <option value="Diesel">Diesel</option>
+                <option value="CNG">CNG</option>
+                <option value="EV">Electric</option>
+            </select>
+
+            <label>Tank Capacity (Litres)</label>
+            <input type="number" id="v_tank" placeholder="e.g., 37">
+
+            <label>Model Year</label>
+            <input type="number" id="v_year" placeholder="e.g., 2020">
+
+            <label>Registration Number</label>
+            <input type="text" id="v_reg" placeholder="e.g., KL 18 XX 7600">
+            <label>Service Interval (km)</label>
+            <input type="number" id="v_interval" placeholder="e.g., 10000">
+            <label>Last Service Odometer (km)</label>
+            <input type="number" id="v_lastservice" placeholder="e.g., 45000">
+            <label>Insurance Expiry Date</label>
+            <input type="date" id="v_insurance">
+            <label>PUC / Emission Expiry Date</label>
+            <input type="date" id="v_puc">
+
+
+            <button class="save-vehicle-btn" onclick="saveVehicleProfile()">Save</button>
+            <button class="close-modal-btn" onclick="closeVehicleModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- CLOUD SYNC MODAL -->
+    <div id="cloudModal" class="modal">
+        <div class="modal-content">
+            <h2>Cloud Sync <span id="cloudStatusBadge" class="status-badge">Offline</span></h2>
+
+            <!-- SECTION: SETUP (If no API key) -->
+            <div id="cloudSetupSection" style="display:none;">
+                <p class="modal-info">To enable sync, paste your Firebase Config object below. You can get this from <a
+                        href="https://console.firebase.google.com/" target="_blank" style="color:#60a5fa;">Firebase
+                        Console</a> > Project Settings.</p>
+                <textarea id="firebaseConfigInput" placeholder='{"apiKey": "...", "authDomain": "...", ...}'
+                    rows="5"></textarea>
+                <button class="primary-btn" onclick="Cloud.saveConfig()">Save Configuration</button>
+            </div>
+
+            <!-- SECTION: AUTH (If config exists but not logged in) -->
+            <div id="cloudAuthSection" style="display:none;">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="Cloud.switchAuth('login')">Login</button>
+                    <button class="auth-tab" onclick="Cloud.switchAuth('register')">Register</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="authEmail" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="authPass" placeholder="******">
+                </div>
+
+                <button id="authBtn" class="primary-btn" onclick="Cloud.login()">Login</button>
+            </div>
+
+            <!-- SECTION: DASHBOARD (If logged in) -->
+            <div id="cloudDashboardSection" style="display:none;">
+                <p class="modal-info">Logged in as <strong id="currentUserEmail">...</strong></p>
+
+                <div class="sync-actions">
+                    <button class="sync-action-btn" onclick="Cloud.syncUp()">
+                        ⬆️ Push Local to Cloud
+                    </button>
+                    <button class="sync-action-btn" onclick="Cloud.syncDown()">
+                        ⬇️ Pull Cloud to Local
+                    </button>
+                </div>
+
+                <div class="sync-status-msg" id="syncMsg"></div>
+
+                <button class="danger-btn" onclick="Cloud.logout()">Logout</button>
+            </div>
+
+            <button class="close-modal-btn" onclick="closeCloudModal()">Close</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+    <!-- Firebase SDKs (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <!-- Cloud Logic -->
+    <script src="cloud.js"></script>
+
+    <!-- PWA Service Worker -->
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("service-worker.js")
+                .then(res => console.log("Service worker registered"))
+                .catch(err => console.log("SW registration failed", err));
+        }
+    </script>
+
+</body>
+
+</html>

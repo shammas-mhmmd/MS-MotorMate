@@ -1,0 +1,21 @@
+{
+  "name": "MS MotorMate",
+  "short_name": "MotorMate",
+  "description": "Smart, glassmorphic car mileage, fuel & service tracker.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#4da3ff",
+  "icons": [
+    {
+      "src": "icons/motormate-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/motormate-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
