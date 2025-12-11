@@ -106,6 +106,124 @@ function refreshVehicleSelect() {
     });
 }
 
+// ===========================
+// CAR DATABASE & MODAL LOGIC
+// ===========================
+const CAR_DATABASE = {
+    "Maruti Suzuki": ["Alto", "Swift", "Baleno", "Dzire", "Brezza", "Ertiga", "WagonR", "Celerio", "Ignis", "S-Presso", "Jimny", "Grand Vitara", "Fronx", "Invicto"],
+    "Hyundai": ["Creta", "Venue", "i20", "Grand i10 Nios", "Verna", "Aura", "Alcazar", "Tucson", "Exter", "Ioniq 5"],
+    "Tata": ["Nexon", "Punch", "Tiago", "Tigor", "Harrier", "Safari", "Altroz", "Nexon EV", "Tiago EV"],
+    "Mahindra": ["Thar", "Scorpio N", "Scorpio Classic", "XUV700", "XUV300", "Bolero", "Bolero Neo", "Marazzo"],
+    "Toyota": ["Innova Crysta", "Innova Hycross", "Fortuner", "Glanza", "Urban Cruiser Hyryder", "Hilux", "Camry"],
+    "Kia": ["Seltos", "Sonet", "Carens", "EV6"],
+    "Honda": ["City", "Amaze", "Elevate"],
+    "Volkswagen": ["Virtus", "Taigun", "Tiguan"],
+    "Skoda": ["Slavia", "Kushaq", "Kodiaq"],
+    "MG": ["Hector", "Hector Plus", "Astor", "ZS EV", "Comet EV", "Gloster"],
+    "Renault": ["Kwid", "Triber", "Kiger"],
+    "Nissan": ["Magnite"],
+    "Jeep": ["Compass", "Meridian", "Wrangler"],
+    "BMW": ["3 Series", "5 Series", "X1", "X3", "X5", "X7", "iX1"],
+    "Mercedes-Benz": ["C-Class", "E-Class", "A-Class", "GLA", "GLC", "GLE", "S-Class"]
+};
+
+let isManualVehicleMode = false;
+let editingVehicleIndex = null;
+
+function initVehicleModal() {
+    const brandSelect = document.getElementById("v_brand_select");
+    const modelSelect = document.getElementById("v_model_select");
+    const yearSelect = document.getElementById("v_year_select");
+    const manualBtn = document.getElementById("manualToggleBtn");
+
+    if (!brandSelect || !yearSelect) return;
+
+    // Populate Brands
+    brandSelect.innerHTML = '<option value="">Select Brand</option>';
+    Object.keys(CAR_DATABASE).sort().forEach(brand => {
+        const opt = document.createElement("option");
+        opt.value = brand;
+        opt.innerText = brand;
+        brandSelect.appendChild(opt);
+    });
+
+    // Brand Change Event
+    brandSelect.addEventListener("change", (e) => {
+        const brand = e.target.value;
+        modelSelect.innerHTML = '<option value="">Select Model</option>';
+        if (brand && CAR_DATABASE[brand]) {
+            CAR_DATABASE[brand].sort().forEach(model => {
+                const opt = document.createElement("option");
+                opt.value = model;
+                opt.innerText = model;
+                modelSelect.appendChild(opt);
+            });
+            modelSelect.disabled = false;
+        } else {
+            modelSelect.disabled = true;
+        }
+    });
+
+    // Populate Years
+    yearSelect.innerHTML = '<option value="">Select Year</option>';
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear + 1; y >= 1980; y--) {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.innerText = y;
+        yearSelect.appendChild(opt);
+    }
+
+    // Toggle Manual Mode
+    if (manualBtn) manualBtn.addEventListener("click", toggleVehicleMode);
+}
+
+function toggleVehicleMode() {
+    isManualVehicleMode = !isManualVehicleMode;
+    const btn = document.getElementById("manualToggleBtn");
+    const selMode = document.getElementById("selectionMode");
+    const manMode = document.getElementById("manualMode");
+
+    if (isManualVehicleMode) {
+        selMode.style.display = "none";
+        manMode.style.display = "block";
+        btn.innerText = "Back to List Selection";
+    } else {
+        selMode.style.display = "block";
+        manMode.style.display = "none";
+        btn.innerText = "Can't find car? Add Manually";
+    }
+}
+
+function openAddVehicleModal() {
+    editingVehicleIndex = null;
+
+    // Reset Form
+    document.getElementById("v_name").value = "";
+    document.getElementById("v_tank").value = "";
+    document.getElementById("v_reg").value = "";
+    document.getElementById("v_variant").value = "";
+    document.getElementById("v_insurance").value = "";
+    document.getElementById("v_lastservice").value = "";
+    document.getElementById("v_interval").value = "";
+
+    // Reset Dropdowns
+    document.getElementById("v_brand_select").value = "";
+    document.getElementById("v_model_select").innerHTML = '<option value="">Select Brand First</option>';
+    document.getElementById("v_model_select").disabled = true;
+    document.getElementById("v_year_select").value = "";
+
+    // Reset Manual Inputs
+    document.getElementById("v_brand_input").value = "";
+    document.getElementById("v_model_input").value = "";
+
+    // Force List Mode
+    isManualVehicleMode = true; // trick toggle
+    toggleVehicleMode(); // now false (list mode)
+
+    document.getElementById("vehicleModal").classList.add("show");
+}
+
 function setupVehicleSwitcherListeners() {
     const select = document.getElementById("vehicleSelect");
     const addBtn = document.querySelector(".vehicle-add-btn");
@@ -121,30 +239,13 @@ function setupVehicleSwitcherListeners() {
 
     if (addBtn) {
         addBtn.addEventListener("click", () => {
-            const name = prompt("Enter vehicle name (e.g., Baleno, Activa):") || "";
-            const profile = {
-                name: name || `Vehicle ${vehicles.length + 1}`,
-                fuel: "Petrol"
-            };
-            const newVehicle = {
-                id: Date.now(),
-                name: profile.name,
-                profile,
-                fuelLogs: [],
-                serviceLogs: [],
-                careData: {}
-            };
-            vehicles.push(newVehicle);
-            activeVehicleIndex = vehicles.length - 1;
-            localStorage.setItem("vehicles", JSON.stringify(vehicles));
-            localStorage.setItem("activeVehicleIndex", String(activeVehicleIndex));
-
-            loadActiveVehicle();
-            refreshVehicleSelect();
-            fullRefreshUI();
-            alert("New vehicle added!");
+            // Open Updated Modal instead of Prompt
+            openAddVehicleModal();
         });
     }
+
+    // Init the logic once
+    initVehicleModal();
 }
 
 // Helper: refresh everything based on active vehicle
@@ -556,18 +657,148 @@ function saveVehicleProfile() {
     alert("Vehicle profile updated!");
 }
 
+// Open modal to Edit
+function openEditVehicleModal() {
+    if (activeVehicleIndex === null) return;
+    editingVehicleIndex = activeVehicleIndex;
+    const v = vehicles[activeVehicleIndex];
+
+    document.getElementById("v_name").value = v.name || "";
+    document.getElementById("v_fuel").value = v.fuelType || "Petrol";
+    document.getElementById("v_tank").value = v.tankCapacity || "";
+
+    // Fill Comprehensive Details
+    document.getElementById("v_reg").value = v.regNumber || "";
+    document.getElementById("v_variant").value = v.variant || "";
+    document.getElementById("v_insurance").value = v.insuranceExpiry || "";
+    document.getElementById("v_lastservice").value = v.lastServiceOdo || "";
+    document.getElementById("v_interval").value = v.serviceInterval || "";
+
+    // Handle Brand/Model Pre-filling
+    if (v.isManual) {
+        isManualVehicleMode = true;
+        document.getElementById("selectionMode").style.display = "none";
+        document.getElementById("manualMode").style.display = "block";
+        document.getElementById("manualToggleBtn").innerText = "Back to List Selection";
+
+        document.getElementById("v_brand_input").value = v.brand || "";
+        document.getElementById("v_model_input").value = v.model || "";
+    } else {
+        isManualVehicleMode = false;
+        document.getElementById("selectionMode").style.display = "block";
+        document.getElementById("manualMode").style.display = "none";
+        document.getElementById("manualToggleBtn").innerText = "Can't find car? Add Manually";
+
+        // Try to set selects
+        const brandSel = document.getElementById("v_brand_select");
+        brandSel.value = v.brand || "";
+
+        // Trigger populate models logic
+        if (v.brand && CAR_DATABASE[v.brand]) {
+            const modelSel = document.getElementById("v_model_select");
+            modelSel.innerHTML = '<option value="">Select Model</option>';
+            CAR_DATABASE[v.brand].sort().forEach(m => {
+                const opt = document.createElement("option");
+                opt.value = m;
+                opt.innerText = m;
+                modelSel.appendChild(opt);
+            });
+            modelSel.value = v.model || "";
+            modelSel.disabled = false;
+        }
+    }
+
+    document.getElementById("v_year_select").value = v.year || "";
+
+    document.getElementById("vehicleModal").classList.add("show");
+}
+
+function closeVehicleModal() {
+    document.getElementById("vehicleModal").classList.remove("show");
+}
+
+function saveVehicle() {
+    let brand, model;
+
+    if (isManualVehicleMode) {
+        brand = document.getElementById("v_brand_input").value.trim();
+        model = document.getElementById("v_model_input").value.trim();
+    } else {
+        brand = document.getElementById("v_brand_select").value;
+        model = document.getElementById("v_model_select").value;
+    }
+
+    const yearVal = document.getElementById("v_year_select").value;
+    const fuel = document.getElementById("v_fuel").value;
+    const variant = document.getElementById("v_variant").value.trim();
+    const reg = document.getElementById("v_reg").value.trim().toUpperCase();
+    const nickname = document.getElementById("v_name").value.trim();
+
+    // Construct Name if Nickname Empty
+    const name = nickname || `${brand} ${model}`;
+
+    if (!brand || !model || !name) {
+        alert("Please enter at least Brand and Model.");
+        return;
+    }
+
+    const tank = parseFloat(document.getElementById("v_tank").value) || 0;
+
+    // Enhanced Object
+    const vehicleData = {
+        name: name,
+        brand: brand,
+        model: model,
+        year: yearVal,
+        fuelType: fuel,
+        tankCapacity: tank,
+        variant: variant,
+        regNumber: reg,
+        isManual: isManualVehicleMode,
+
+        // Maintenance
+        serviceInterval: parseFloat(document.getElementById("v_interval").value) || 0,
+        lastServiceOdo: parseFloat(document.getElementById("v_lastservice").value) || 0,
+        insuranceExpiry: document.getElementById("v_insurance").value,
+
+        // Preserve Logs if editing
+        fuelLogs: editingVehicleIndex !== null ? vehicles[editingVehicleIndex].fuelLogs : [],
+        serviceLogs: editingVehicleIndex !== null ? vehicles[editingVehicleIndex].serviceLogs : [],
+        careData: editingVehicleIndex !== null ? vehicles[editingVehicleIndex].careData : {}
+    };
+
+    if (editingVehicleIndex !== null) {
+        vehicles[editingVehicleIndex] = vehicleData;
+    } else {
+        vehicles.push(vehicleData);
+        activeVehicleIndex = vehicles.length - 1;
+    }
+
+    saveData();
+    closeVehicleModal();
+    loadActiveVehicle(); // Refresh UI
+    refreshVehicleSelect();
+
+    // Auto cloud sync if online
+    if (typeof Cloud !== 'undefined' && Cloud.user) Cloud.syncUp();
+}
+
 function updateVehicleBar() {
     const nameEl = document.getElementById("vehicleNameDisplay");
     const metaEl = document.getElementById("vehicleMetaDisplay");
 
     if (!nameEl || !metaEl) return;
 
-    nameEl.innerText = vehicleProfile.name || "Your Vehicle";
+    // Get current
+    const v = vehicles[activeVehicleIndex];
+    if (!v) return;
+
+    nameEl.innerText = v.name || "Your Vehicle";
 
     const metaParts = [];
-    if (vehicleProfile.fuel) metaParts.push(vehicleProfile.fuel);
-    if (vehicleProfile.year) metaParts.push(vehicleProfile.year);
-    if (vehicleProfile.reg) metaParts.push(vehicleProfile.reg);
+    if (v.regNumber) metaParts.push(v.regNumber);
+    if (v.model) metaParts.push(v.model);
+    if (v.fuelType) metaParts.push(v.fuelType);
 
     metaEl.innerText = metaParts.length ? metaParts.join(" · ") : "Tap edit to add details";
 }

@@ -249,32 +249,75 @@
      VEHICLE PROFILE MODAL
      =========================== -->
     <div id="vehicleModal" class="modal">
-        <div class="modal-content">
-            <h2>Edit Vehicle Details</h2>
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header-row" style="display:flex; justify-content:space-between; align-items:center;">
+                <h2>Vehicle Profile</h2>
+                <button type="button" id="manualToggleBtn"
+                    style="font-size:11px; padding:4px 8px; background:rgba(255,255,255,0.1); border:none; color:#38bdf8; cursor:pointer; border-radius:6px;">
+                    Can't find car? Add Manually
+                </button>
+            </div>
 
-            <label>Vehicle Name</label>
-            <input type="text" id="v_name" placeholder="e.g., Baleno, Swift, Creta">
+            <!-- SELECTION MODE -->
+            <div id="selectionMode">
+                <label>Car Brand</label>
+                <select id="v_brand_select"></select>
 
-            <label>Fuel Type</label>
-            <select id="v_fuel">
-                <option value="Petrol">Petrol</option>
-                <option value="Diesel">Diesel</option>
-                <option value="CNG">CNG</option>
-                <option value="EV">Electric</option>
-            </select>
+                <label>Car Model</label>
+                <select id="v_model_select" disabled>
+                    <option value="">Select Brand First</option>
+                </select>
+            </div>
 
-            <label>Tank Capacity (Litres)</label>
-            <input type="number" id="v_tank" placeholder="e.g., 37">
+            <!-- MANUAL MODE (Hidden by default) -->
+            <div id="manualMode" style="display:none;">
+                <label>Car Brand</label>
+                <input type="text" id="v_brand_input" placeholder="e.g. Toyota">
 
-            <label>Model Year</label>
-            <input type="number" id="v_year" placeholder="e.g., 2020">
+                <label>Car Model</label>
+                <input type="text" id="v_model_input" placeholder="e.g. Fortuner">
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label>Fuel Type</label>
+                    <select id="v_fuel">
+                        <option value="Petrol">Petrol</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="CNG">CNG</option>
+                        <option value="EV">Electric</option>
+                        <option value="Hybrid">Hybrid</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Year</label>
+                    <select id="v_year_select"></select> <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <label>Variant / Trim</label>
+            <input type="text" id="v_variant" placeholder="e.g., ZXi Plus / Titanium">
 
             <label>Registration Number</label>
-            <input type="text" id="v_reg" placeholder="e.g., KL 18 XX 7600">
-            <label>Service Interval (km)</label>
-            <input type="number" id="v_interval" placeholder="e.g., 10000">
+            <input type="text" id="v_reg" placeholder="e.g., KL 18 XX 7600" style="text-transform: uppercase;">
+
+            <label>Nickname (Optional)</label>
+            <input type="text" id="v_name" placeholder="e.g., My Beast">
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label>Tank Cap (L)</label>
+                    <input type="number" id="v_tank" placeholder="e.g., 45">
+                </div>
+                <div>
+                    <label>Service Interval</label>
+                    <input type="number" id="v_interval" placeholder="10000">
+                </div>
+            </div>
+
             <label>Last Service Odometer (km)</label>
-            <input type="number" id="v_lastservice" placeholder="e.g., 45000">
+            <input type="number" id="v_lastservice">
+
             <label>Insurance Expiry Date</label>
             <input type="date" id="v_insurance">
             <label>PUC / Emission Expiry Date</label>
