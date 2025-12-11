@@ -1536,11 +1536,39 @@ function addTripExpense() {
 }
 
 function endTrip() {
-    if (!confirm("End this trip? History will be saved (coming soon).")) return;
-    // For now just clear active trip. Ideally move to 'pastTrips' array.
-    delete vehicles[activeVehicleIndex].activeTrip;
+    if (!confirm("End this trip? It will be archived to history.")) return;
+
+    const v = vehicles[activeVehicleIndex];
+    if (!v.activeTrip) return;
+
+    // Initialize history if needed
+    if (!v.tripHistory) v.tripHistory = [];
+
+    // Archive
+    v.activeTrip.endDate = Date.now();
+    v.tripHistory.push(v.activeTrip);
+
+    // Clear active
+    delete v.activeTrip;
+
     saveActiveVehicle();
     renderTripUI();
+    showToast("Trip archived to History.");
+}
+
+function showTripHistory() {
+    const v = vehicles[activeVehicleIndex];
+    if (!v || !v.tripHistory || v.tripHistory.length === 0) {
+        alert("No past trips found.");
+        return;
+    }
+
+    let msg = "Past Trips:\n";
+    v.tripHistory.forEach(t => {
+        const cost = t.expenses.reduce((s, x) => s + x.amount, 0);
+        msg += `- ${t.name}: ₹${cost} (${new Date(t.startDate).toLocaleDateString()})\n`;
+    });
+    alert(msg);
 }
 
 function openSplitModal() {
