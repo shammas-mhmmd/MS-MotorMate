@@ -444,6 +444,7 @@ function fullRefreshUI() {
     updateInsightsPanel();
     updateCharts();
     renderDocuments();
+    renderTripUI();
 }
 
 // ===============================
@@ -824,24 +825,84 @@ function closeVehicleModal() {
 }
 
 function saveVehicleProfile() {
-    vehicleProfile = {
-        name: document.getElementById("v_name").value,
-        fuel: document.getElementById("v_fuel").value,
-        tank: document.getElementById("v_tank").value,
-        year: document.getElementById("v_year").value,
-        reg: document.getElementById("v_reg").value,
-        interval: document.getElementById("v_interval").value,
-        lastService: document.getElementById("v_lastservice").value,
-        insurance: document.getElementById("v_insurance").value,
-        puc: document.getElementById("v_puc").value
+    // 1. Determine Brand/Model
+    let brand, model;
+    if (isManualVehicleMode) {
+        brand = document.getElementById("v_brand_input").value;
+        model = document.getElementById("v_model_input").value;
+    } else {
+        brand = document.getElementById("v_brand_select").value;
+        model = document.getElementById("v_model_select").value;
+    }
+
+    // 2. Other Fields
+    const year = document.getElementById("v_year_select").value;
+    const variant = document.getElementById("v_variant").value;
+    const fuel = document.getElementById("v_fuel").value;
+    const reg = document.getElementById("v_reg").value;
+    const name = document.getElementById("v_name").value || `${brand} ${model}`;
+    const tank = document.getElementById("v_tank").value;
+    const interval = document.getElementById("v_interval").value;
+    const lastService = document.getElementById("v_lastservice").value;
+    const insurance = document.getElementById("v_insurance").value;
+    const puc = document.getElementById("v_puc").value;
+
+    // Type (Car/Bike) - Assuming currentVehicleType is set by the switcher
+    const type = currentVehicleType;
+
+    // Validation
+    if (!brand || !model || !year) {
+        alert("Please fill in Brand, Model, and Year.");
+        return;
+    }
+
+    // 3. Construct Object
+    // Check if we are editing an existing vehicle or adding a new one
+    // We'll assume if activeVehicleIndex is valid, we are editing.
+    // NOTE: The 'Add' flow needs to set activeVehicleIndex to null or handle strictly.
+    // For now, let's update strict properties.
+
+    const existing = (activeVehicleIndex !== null && vehicles[activeVehicleIndex]) ? vehicles[activeVehicleIndex] : {};
+
+    const updatedVehicle = {
+        ...existing, // Keep logs!
+        id: existing.id || Date.now(),
+        brand, model, variant, year,
+        fuelType: fuel,
+        regNumber: reg, name,
+        tankCapacity: tank,
+        serviceInterval: interval,
+        lastServiceOdo: lastService,
+        insuranceExpiry: insurance,
+        pucExpiry: puc,
+        type: type,
+        isManual: isManualVehicleMode,
+        // Ensure arrays exist if new
+        fuelLogs: existing.fuelLogs || [],
+        serviceLogs: existing.serviceLogs || [],
+        documentLogs: existing.documentLogs || []
     };
 
-    localStorage.setItem("vehicleProfile", JSON.stringify(vehicleProfile));
-    saveActiveVehicle();
+    if (activeVehicleIndex !== null && vehicles[activeVehicleIndex]) {
+        vehicles[activeVehicleIndex] = updatedVehicle;
+    } else {
+        vehicles.push(updatedVehicle);
+        activeVehicleIndex = vehicles.length - 1;
+    }
+
+    localStorage.setItem("vehicles", JSON.stringify(vehicles));
+
+    // Reload UI
+    loadActiveVehicle();
     updateVehicleBar();
     refreshVehicleSelect();
-    closeVehicleModal();
-    alert("Vehicle profile updated!");
+    closeVehicleModal(); // function defined at line 820
+
+    if (window.Cloud && typeof Cloud.syncUp === 'function') Cloud.syncUp();
+
+    // Show Toast if available, else alert
+    if (window.showToast) showToast("Vehicle Saved Successfully!");
+    else alert("Vehicle Saved!");
 }
 
 // Open modal to Edit
@@ -1345,6 +1406,186 @@ function compressImage(file, maxWidth = 1000, quality = 0.7) {
 }
 
 // ===============================
+// TRIP TOOLS & SOS
+// ===============================
+function calculateTripCost() {
+    const dist = parseFloat(document.getElementById("calc_dist").value);
+    if (!dist) return;
+
+    if (activeVehicleIndex === null || !vehicles[activeVehicleIndex]) {
+        alert("Please select a vehicle first.");
+        return;
+    }
+
+    const v = vehicles[activeVehicleIndex];
+    let mileage = 0;
+    let price = 100; // default ballpark
+
+    // Try to get mileage from existing logs
+    if (v.fuelLogs && v.fuelLogs.length > 1) {
+        // Simple avg calc
+        let totDist = 0;
+        let totFuel = 0;
+        let lastLog = v.fuelLogs[v.fuelLogs.length - 1];
+        if (lastLog.price) price = lastLog.price;
+
+        for (let i = 1; i < v.fuelLogs.length; i++) {
+            totDist += (v.fuelLogs[i].odo - v.fuelLogs[i - 1].odo);
+            totFuel += v.fuelLogs[i].litres;
+        }
+        if (totFuel > 0) mileage = totDist / totFuel;
+    }
+
+    // Fallback if no logs
+    if (mileage === 0) mileage = (v.type === 'Bike') ? 40 : 15;
+
+    const fuelNeeded = dist / mileage;
+    const cost = fuelNeeded * price;
+
+    document.getElementById("calc_result").innerText = `Est: ₹${Math.round(cost)} (${fuelNeeded.toFixed(1)}L)`;
+}
+
+function sendSOS() {
+    if (!confirm("Send SOS message via WhatsApp?")) return;
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            const { latitude, longitude } = position.coords;
+            const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+            const msg = `SOS! I am having vehicle trouble. My location: ${mapsLink}`;
+            const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }, () => {
+            alert("Could not pull GPS location.");
+            const msg = `SOS! I am having vehicle trouble. Call me!`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        });
+    } else {
+        alert("Geolocation not supported.");
+    }
+}
+
+// ===============================
+// TRIP MANAGER LOGIC
+// ===============================
+function renderTripUI() {
+    if (activeVehicleIndex === null || !vehicles[activeVehicleIndex]) return;
+
+    const v = vehicles[activeVehicleIndex];
+    if (v.activeTrip) {
+        document.getElementById("tripStartView").style.display = "none";
+        document.getElementById("tripActiveView").style.display = "block";
+        document.getElementById("t_active_name").innerText = v.activeTrip.name;
+
+        let total = 0;
+        const logDiv = document.getElementById("t_log");
+        logDiv.innerHTML = "";
+
+        v.activeTrip.expenses.forEach((ex, index) => {
+            total += ex.amount;
+            const row = document.createElement("div");
+            row.className = "entry";
+            row.innerHTML = `
+                <div style="display:flex; justify-content:space-between;">
+                    <strong>${ex.cat}</strong>
+                    <span>₹${ex.amount}</span>
+                </div>
+                <div style="font-size:11px; color:#aaa;">${ex.desc}</div>
+            `;
+            logDiv.prepend(row);
+        });
+
+        document.getElementById("t_total").innerText = total;
+    } else {
+        document.getElementById("tripStartView").style.display = "block";
+        document.getElementById("tripActiveView").style.display = "none";
+    }
+}
+
+function startTrip() {
+    if (activeVehicleIndex === null) { alert("Select vehicle first"); return; }
+
+    const name = document.getElementById("t_new_name").value || "Road Trip";
+    vehicles[activeVehicleIndex].activeTrip = {
+        name: name,
+        startDate: Date.now(),
+        expenses: []
+    };
+    saveActiveVehicle();
+    renderTripUI();
+}
+
+function addTripExpense() {
+    if (activeVehicleIndex === null) return;
+
+    const amt = parseFloat(document.getElementById("t_amt").value);
+    const cat = document.getElementById("t_cat").value;
+    const desc = document.getElementById("t_desc").value || cat;
+
+    if (!amt) { alert("Enter amount"); return; }
+
+    vehicles[activeVehicleIndex].activeTrip.expenses.push({
+        amount: amt, cat, desc, date: Date.now()
+    });
+
+    document.getElementById("t_amt").value = "";
+    document.getElementById("t_desc").value = "";
+
+    saveActiveVehicle();
+    renderTripUI();
+}
+
+function endTrip() {
+    if (!confirm("End this trip? History will be saved (coming soon).")) return;
+    // For now just clear active trip. Ideally move to 'pastTrips' array.
+    delete vehicles[activeVehicleIndex].activeTrip;
+    saveActiveVehicle();
+    renderTripUI();
+}
+
+function openSplitModal() {
+    const modal = document.getElementById("splitModal");
+    modal.classList.add("show");
+
+    // Calc total
+    const v = vehicles[activeVehicleIndex];
+    if (v && v.activeTrip) {
+        let total = v.activeTrip.expenses.reduce((sum, item) => sum + item.amount, 0);
+        document.getElementById("sm_total").innerText = total;
+        calcSplit();
+    }
+}
+
+function calcSplit() {
+    const total = parseFloat(document.getElementById("sm_total").innerText);
+    const people = parseInt(document.getElementById("sm_people").value) || 1;
+    document.getElementById("sm_per_person").innerText = Math.ceil(total / people);
+}
+
+function shareTripSummary() {
+    const v = vehicles[activeVehicleIndex];
+    if (!v || !v.activeTrip) return;
+
+    let total = 0;
+    let text = `*Trip Summary: ${v.activeTrip.name}*\n----------------\n`;
+    v.activeTrip.expenses.forEach(ex => {
+        text += `${ex.cat}: ₹${ex.amount} (${ex.desc})\n`;
+        total += ex.amount;
+    });
+
+    const people = parseInt(document.getElementById("sm_people").value) || 1;
+    const share = Math.ceil(total / people);
+
+    text += `----------------\n*Total: ₹${total}*\n`;
+    text += `Split (${people} ppl): *₹${share} / person*\n`;
+    text += `\n- Sent via MS MotorMate`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+// Ensure UI updates on load
+// I will hook into loadActiveVehicle logic ideally, or call it manually in init.
+// ===============================
 // RADAR / DRIVE MODE LOGIC
 // ===============================
 let savedCameras = JSON.parse(localStorage.getItem("savedCameras") || "[]");
@@ -1510,6 +1751,82 @@ function playAlertSound() {
     } catch (e) { console.error("Audio error", e); }
 }
 
+
+// ===============================
+// OBD-II / CONNECT CAR LOGIC
+// ===============================
+let obdInterval = null;
+let isObdConnected = false;
+
+function connectToOBD() {
+    // Check if API available
+    if (!navigator.bluetooth) {
+        // Fallback to demo mode immediately
+        startOBDDemo("Bluetooth API not available. Starting Demo Mode.");
+        return;
+    }
+
+    navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ['generic_access', 0xfff0] // Standard OBD services often vary
+    })
+        .then(device => {
+            showToast(`Connected to ${device.name}!`);
+            isObdConnected = true;
+            document.getElementById("obd_dot").style.background = "#4ade80"; // Green
+            document.getElementById("obd_dot").style.boxShadow = "0 0 8px #4ade80";
+            startOBDLoop(); // Ideally we read characteristics here
+        })
+        .catch(error => {
+            console.log(error);
+            startOBDDemo("Connection failed/cancelled. Starting Demo Mode.");
+        });
+}
+
+function startOBDDemo(msg) {
+    showToast(msg);
+    isObdConnected = false; // It's demo
+    document.getElementById("obd_dot").style.background = "#fbbf24"; // Orange (Demo)
+    document.getElementById("obd_dot").style.boxShadow = "0 0 8px #fbbf24";
+    startOBDLoop();
+}
+
+function startOBDLoop() {
+    const modal = document.getElementById("liveDataModal");
+    modal.classList.add("show");
+
+    if (obdInterval) clearInterval(obdInterval);
+
+    obdInterval = setInterval(() => {
+        // Simulated Data (since we don't have real parser yet)
+        const rpm = Math.floor(Math.random() * (3000 - 800) + 800);
+        const speed = Math.floor(Math.random() * 80);
+        const temp = Math.floor(Math.random() * (95 - 85) + 85);
+        const batt = (Math.random() * (14.4 - 13.5) + 13.5).toFixed(1);
+
+        document.getElementById("live_rpm").innerText = rpm;
+        document.getElementById("live_speed").innerText = speed;
+        document.getElementById("live_temp").innerText = temp + "°C";
+        document.getElementById("live_batt").innerText = batt + "v";
+
+        // Update Drive Mode Speed too if active
+        if (document.getElementById("drive").style.display === "block") {
+            const driveSpeed = document.getElementById("driveSpeed");
+            if (driveSpeed) driveSpeed.innerText = speed;
+        }
+
+    }, 1000);
+}
+
+function disconnectOBD() {
+    if (obdInterval) clearInterval(obdInterval);
+    document.getElementById("liveDataModal").classList.remove("show");
+
+    document.getElementById("obd_dot").style.background = "#ef4444"; // Red
+    document.getElementById("obd_dot").style.boxShadow = "0 0 5px #ef4444";
+
+    showToast("Disconnected.");
+}
 
 // ===============================
 // INITIAL LOAD (MUST BE LAST)
