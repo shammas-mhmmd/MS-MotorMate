@@ -25,7 +25,7 @@
     <header>
         <div class="header-top">
             <h1>MS MotorMate</h1>
-            <button id="cloudBtn" class="cloud-btn" title="Cloud Sync">☁️</button>
+            <div id="cloudBtn" class="profile-img-btn" title="Account Settings">☁️</div>
         </div>
         <p>Your Smart Car Companion</p>
         <button id="installBtn" class="install-btn">Install App</button>
@@ -325,6 +325,10 @@
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" id="authPass" placeholder="******">
+                </div>
+                <div style="text-align:right; margin-bottom:15px;">
+                    <a onclick="Cloud.forgotPassword()" class="forgot-pass-link" style="display:inline-block;">Forgot
+                        Password?</a>
                 </div>
 
                 <button id="authBtn" class="primary-btn" onclick="Cloud.login()">Login</button>

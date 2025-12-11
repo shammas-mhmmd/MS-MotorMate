@@ -41,14 +41,18 @@ const Cloud = {
                 this.updateStatus("Online", "online");
                 document.getElementById("currentUserEmail").innerText = user.email;
 
-                // If logged in, close modal if it's open
+                // Update Profile Icon
+                this.updateProfileUI(user);
+
+                // If logged in, close modal if it's open (and not manually opened)
                 const modal = document.getElementById("cloudModal");
                 if (modal.classList.contains("show")) {
                     setTimeout(() => closeCloudModal(), 500);
                 }
                 this.refreshModalState();
             } else {
-                this.updateStatus("Logged Out", "offline");
+                this.updateStatus("", "offline"); // Clear status
+                this.updateProfileUI(null); // Reset Icon
                 this.refreshModalState(); // Force login
             }
         });
@@ -58,10 +62,14 @@ const Cloud = {
     setupUI: function () {
         const btn = document.getElementById("cloudBtn");
         const modal = document.getElementById("cloudModal");
+
         if (btn) {
             btn.addEventListener("click", () => {
                 modal.classList.add("show");
                 this.refreshModalState();
+
+                // Also update UI just in case
+                if (this.user) this.updateProfileUI(this.user);
             });
         }
     },
@@ -116,28 +124,94 @@ const Cloud = {
         }
     },
 
+    // TOAST NOTIFICATIONS
+    showToast: function (msg, type = 'success') {
+        let container = document.getElementById("toast-container");
+        if (!container) {
+            container = document.createElement("div");
+            container.id = "toast-container";
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.innerHTML = `${type === 'success' ? '✅' : '⚠️'} ${msg}`;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    },
+
     login: function () {
         const email = document.getElementById("authEmail").value;
         const pass = document.getElementById("authPass").value;
-        this.auth.signInWithEmailAndPassword(email, pass).catch(e => alert(e.message));
+
+        if (!email || !pass) {
+            this.showToast("Please enter email and password", "error");
+            return;
+        }
+
+        this.auth.signInWithEmailAndPassword(email, pass)
+            .then(() => {
+                this.showToast("Login Successful! Welcome back.");
+            })
+            .catch(e => this.showToast(e.message, "error"));
     },
 
     register: function () {
         const email = document.getElementById("authEmail").value;
         const pass = document.getElementById("authPass").value;
+
+        if (!email || !pass) {
+            this.showToast("Please fill all fields", "error");
+            return;
+        }
+
         this.auth.createUserWithEmailAndPassword(email, pass)
-            .then(() => alert("Account created!"))
-            .catch(e => alert(e.message));
+            .then((cred) => {
+                this.showToast("Registration Successful!");
+                // Optionally save mobile number to firestore profile here if needed
+            })
+            .catch(e => this.showToast(e.message, "error"));
+    },
+
+    forgotPassword: function () {
+        const email = document.getElementById("authEmail").value;
+        if (!email) {
+            this.showToast("Please enter your email first", "error");
+            return;
+        }
+        this.auth.sendPasswordResetEmail(email)
+            .then(() => this.showToast("Reset link sent to " + email))
+            .catch(e => this.showToast(e.message, "error"));
+    },
+
+    // UI Updates
+    updateProfileUI: function (user) {
+        const btn = document.getElementById("cloudBtn");
+        if (btn) {
+            if (user && user.photoURL) {
+                btn.innerHTML = `<img src="${user.photoURL}" alt="User">`;
+            } else if (user) {
+                // Generate Initials or standard Icon
+                const initial = user.email ? user.email[0].toUpperCase() : "U";
+                btn.innerHTML = `<span style="font-weight:600; color:#cbd5e1;">${initial}</span>`;
+            } else {
+                btn.innerHTML = "☁️"; // Or generic icon
+            }
+        }
     },
 
     logout: function () {
-        this.auth.signOut();
+        this.auth.signOut().then(() => this.showToast("Logged out successfully"));
     },
 
     // DATA SYNC
     syncUp: async function () {
         if (!this.user) return;
-        this.msg("Syncing up...");
+        this.showToast("Syncing data to cloud...");
 
         try {
             const data = {
@@ -147,15 +221,15 @@ const Cloud = {
             };
 
             await this.db.collection("users").doc(this.user.uid).set(data);
-            this.msg("✅ Upload Successful!");
+            this.showToast("Data pushed to cloud!");
         } catch (e) {
-            this.msg("❌ Upload Failed: " + e.message);
+            this.showToast("Upload Failed: " + e.message, "error");
         }
     },
 
     syncDown: async function () {
         if (!this.user) return;
-        this.msg("Syncing down...");
+        this.showToast("Fetching data...");
 
         try {
             const doc = await this.db.collection("users").doc(this.user.uid).get();
@@ -170,20 +244,19 @@ const Cloud = {
                         refreshVehicleSelect();
                         fullRefreshUI();
                     }
-                    this.msg("✅ Download Successful!");
+                    this.showToast("Cloud data restored!");
                 }
             } else {
-                this.msg("⚠️ No data found in cloud.");
+                this.showToast("No data found in cloud.", "error");
             }
         } catch (e) {
-            this.msg("❌ Download Failed: " + e.message);
+            this.showToast("Download Failed: " + e.message, "error");
         }
     },
 
     msg: function (text) {
-        const el = document.getElementById("syncMsg");
-        if (el) el.innerText = text;
-        setTimeout(() => { if (el) el.innerText = ""; }, 3000);
+        // Legacy support redirected to toast
+        // document.getElementById("syncMsg").innerText = text;
     }
 };
 
