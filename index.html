@@ -22,6 +22,12 @@
 </head>
 
 <body>
+    <script>
+  if (localStorage.getItem("ms_logged_in") !== "true") {
+    window.location.href = "login.html";
+  }
+</script>
+
     <!-- Splash Screen -->
     <div id="splash">
         <div class="splash-inner">
