@@ -37,10 +37,18 @@
         </div>
     </div>
     <header>
-        <div class="header-top">
-            <h1>MS MotorMate</h1>
-            <div id="cloudBtn" class="profile-img-btn" title="Account Settings">☁️</div>
-        </div>
+       <div class="header-top">
+    <h1>MS MotorMate</h1>
+
+    <div style="display:flex; gap:8px; align-items:center;">
+        <div id="cloudBtn" class="profile-img-btn" title="Account Settings">☁️</div>
+
+        <button onclick="logout()" class="logout-btn">
+            ⎋ Logout
+        </button>
+    </div>
+</div>
+
         <p>Your Smart Car Companion</p>
         <button id="installBtn" class="install-btn">Install App</button>
     </header>
