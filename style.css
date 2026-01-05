@@ -799,4 +799,33 @@ select option {
   font-size: 13px;
   opacity: 0.85;
 }
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.08),
+    rgba(255,255,255,0.02)
+  );
+  color: #e5e7eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+
+.logout-btn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(239,68,68,0.25),
+    rgba(239,68,68,0.1)
+  );
+  border-color: rgba(239,68,68,0.6);
+  color: #fee2e2;
+}
 
