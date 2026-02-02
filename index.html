@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MS MotorMate</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q548DS483S"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-Q548DS483S');
+    </script>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <script>
+        if (localStorage.getItem("ms_logged_in") !== "true") {
+            window.location.href = "login.html";
+        }
+    </script>
+
+    <!-- Splash Screen -->
+    <div id="splash">
+        <div class="splash-inner">
+            <div class="splash-logo">MS</div>
+            <div class="splash-title">MotorMate</div>
+            <div class="splash-subtitle">Smart Car Companion</div>
+        </div>
+    </div>
+    <header>
+        <div class="header-top">
+            <h1>MS MotorMate</h1>
+
+            <div style="display:flex; gap:8px; align-items:center;">
+                <div id="cloudBtn" class="profile-img-btn" title="Account Settings">☁️</div>
+
+                <button onclick="logout()" class="logout-btn">
+                    ⎋ Logout
+                </button>
+            </div>
+        </div>
+
+        <p>Your Smart Car Companion</p>
+        <button id="installBtn" class="install-btn">Install App</button>
+    </header>
+
+    <nav>
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="fuel">Fuel Log</button>
+        <button class="tab-btn" data-tab="service">Service</button>
+        <button class="tab-btn" data-tab="documents">Docs</button>
+        <button class="tab-btn" data-tab="trips">Trips</button>
+        <button class="tab-btn" data-tab="drive">Drive</button>
+    </nav>
+
+    <main>
+
+        <!-- DASHBOARD -->
+        <section id="dashboard" class="tab active">
+            <!-- VEHICLE SWITCHER -->
+            <div class="vehicle-switcher">
+                <div class="vehicle-switcher-left">
+                    <span class="vehicle-switcher-label">Vehicle</span>
+                    <select id="vehicleSelect">
+                        <!-- options will be added by JS -->
+                    </select>
+                </div>
+                <button class="vehicle-add-btn">+ Add</button>
+            </div>
+            <!-- VEHICLE PROFILE BAR -->
+            <div class="vehicle-bar">
+                <div class="vehicle-text">
+                    <div id="vehicleNameDisplay" class="vehicle-name">Your Vehicle</div>
+                    <div id="vehicleMetaDisplay" class="vehicle-meta">Tap edit to add details</div>
+                </div>
+                <button onclick="connectToOBD()" id="btn_connect"
+                    style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.2); color:#cbd5e1; padding:8px 12px; border-radius:12px; display:flex; align-items:center; gap:6px; cursor:pointer; margin-right:8px; font-size:11px;">
+                    <span id="obd_dot"
+                        style="width:6px; height:6px; background:#ef4444; border-radius:50%; box-shadow:0 0 5px #ef4444;"></span>
+                    Connect
+                </button>
+                <button class="vehicle-edit-btn" onclick="openVehicleModal()">Edit</button>
+            </div>
+            <!-- QUICK FIND -->
+            <div
+                style="display:flex; gap:10px; overflow-x:auto; padding-bottom:5px; margin-bottom:15px; scrollbar-width: none;">
+                <a href="https://www.google.com/maps/search/petrol+pump+near+me" target="_blank" class="quick-btn">⛽
+                    Fuel</a>
+                <a href="https://www.google.com/maps/search/EV+charging+station+near+me" target="_blank"
+                    class="quick-btn">🔌 EV</a>
+                <a href="https://www.google.com/maps/search/mechanic+near+me" target="_blank" class="quick-btn">🛠️
+                    Mechanic</a>
+                <a href="https://www.google.com/maps/search/parking+near+me" target="_blank" class="quick-btn">🅿️
+                    Parking</a>
+                <a href="https://www.google.com/maps/search/car+wash+near+me" target="_blank" class="quick-btn">🚿
+                    Wash</a>
+                <a href="https://www.google.com/maps/search/hospital+near+me" target="_blank" class="quick-btn">🏥
+                    Hospital</a>
+            </div>
+
+            <!-- TRIP TOOLS & SOS -->
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px; margin-bottom:15px;">
+                <div class="card" style="margin-bottom:0; padding:12px;">
+                    <h3>Trip Cost Calc</h3>
+                    <div style="display:flex; gap:6px; margin-top:5px;">
+                        <input type="number" id="calc_dist" placeholder="Km" style="padding:6px; font-size:13px;">
+                        <button onclick="calculateTripCost()"
+                            style="background:var(--primary); color:#000; border:none; border-radius:8px; padding:0 12px; font-weight:bold;">Go</button>
+                    </div>
+                    <div id="calc_result" style="font-size:11px; margin-top:6px; color:var(--text-muted);">Est. Cost: -
+                    </div>
+                </div>
+
+                <button onclick="sendSOS()"
+                    style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white; border:none; border-radius:16px; font-weight:bold; font-size:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 5px 15px rgba(220, 38, 38, 0.4); cursor:pointer;">
+                    <span>🆘</span>
+                    <span style="font-size:10px; margin-top:2px;">SOS</span>
+                </button>
+            </div>
+
+            <!-- CARE REMINDERS -->
+            <div class="care-reminders">
+                <h3>Care Reminders</h3>
+
+                <div class="care-item">
+                    <div>
+                        <div class="care-title">Car Wash</div>
+                        <div class="care-status" id="washStatus">Tap button to start tracking</div>
+                    </div>
+                    <button class="care-btn" onclick="markWashed()">Washed Today</button>
+                </div>
+
+                <div class="care-item">
+                    <div>
+                        <div class="care-title">Tyre Pressure</div>
+                        <div class="care-status" id="tyreStatus">Tap button to start tracking</div>
+                    </div>
+                    <button class="care-btn" onclick="markTyreChecked()">Checked Today</button>
+                </div>
+            </div>
+
+            <!-- PREMIUM DASHBOARD STATS -->
+            <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap:12px;">
+                <!-- Total Distance -->
+                <div class="card stat-card"
+                    style="background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));">
+                    <div style="font-size:24px; margin-bottom:4px;">🛣️</div>
+                    <h3>Total Distance</h3>
+                    <p id="totalDistance" style="font-size:20px; color:#fff;">0 km</p>
+                </div>
+
+                <!-- Avg Mileage (Highlighted) -->
+                <div class="card stat-card"
+                    style="background: linear-gradient(135deg, rgba(0, 229, 255, 0.1), rgba(0,0,0,0)); border-color:var(--primary);">
+                    <div style="font-size:24px; margin-bottom:4px;">⛽</div>
+                    <h3>Avg Mileage</h3>
+                    <p id="avgMileage"
+                        style="font-size:26px; font-weight:800; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                        0 km/l</p>
+                </div>
+
+                <!-- Fuel Cost -->
+                <div class="card stat-card">
+                    <div style="font-size:24px; margin-bottom:4px;">💰</div>
+                    <h3>Total Spent</h3>
+                    <p id="totalCost" style="font-size:18px; color:#cbd5e1;">₹0</p>
+                </div>
+
+                <!-- Cost / KM -->
+                <div class="card stat-card">
+                    <div style="font-size:24px; margin-bottom:4px;">📉</div>
+                    <h3>Cost / KM</h3>
+                    <p id="costPerKm" style="font-size:18px; color:#cbd5e1;">₹0</p>
+                </div>
+            </div>
+
+            <!-- SECONDARY PRO STATS -->
+            <div class="card-grid" style="grid-template-columns: repeat(4, 1fr); gap:8px; margin-bottom:15px;">
+                <div class="card" style="padding:10px 4px; text-align:center;">
+                    <h3 style="font-size:9px; margin-bottom:2px;">BEST</h3>
+                    <p id="bestMileage" style="font-size:12px; color:#4ade80;">-</p>
+                </div>
+                <div class="card" style="padding:10px 4px; text-align:center;">
+                    <h3 style="font-size:9px; margin-bottom:2px;">WORST</h3>
+                    <p id="worstMileage" style="font-size:12px; color:#ef4444;">-</p>
+                </div>
+                <div class="card" style="padding:10px 4px; text-align:center;">
+                    <h3 style="font-size:9px; margin-bottom:2px;">REFILLS</h3>
+                    <p id="totalRefills" style="font-size:12px;">0</p>
+                </div>
+                <div class="card" style="padding:10px 4px; text-align:center;">
+                    <h3 style="font-size:9px; margin-bottom:2px;">SERVICE</h3>
+                    <p id="totalServices" style="font-size:12px;">0</p>
+                </div>
+            </div>
+
+            <!-- RESET ALL DATA BUTTON -->
+            <button onclick="resetAllData()" class="danger-btn">
+                Reset All Data (this device only)
+            </button>
+
+            <!-- SMART INSIGHTS -->
+            <div class="insights-card">
+                <h3>Smart Insights</h3>
+                <ul id="insightsList"></ul>
+            </div>
+
+            <!-- CHARTS -->
+            <h2 class="section-title">Fuel & Mileage Overview</h2>
+            <div class="chart-wrapper">
+                <canvas id="mileageChart"></canvas>
+            </div>
+
+
+            <div class="chart-wrapper">
+                <canvas id="costChart"></canvas>
+            </div>
+
+            <!-- RECENT ENTRIES -->
+            <h2 class="section-title">Recent Fuel Entries</h2>
+            <div id="recentFuel"></div>
+
+            <h2 class="section-title">Recent Service Entries</h2>
+            <div id="recentService"></div>
+        </section>
+
+
+        <!-- FUEL LOG -->
+        <section id="fuel" class="tab">
+
+            <h2 class="section-title">Fuel Log</h2>
+            <p class="tab-subtitle">Add each refill and let MotorMate calculate mileage and fuel costs for you.</p>
+
+            <!-- FUEL FORM CARD -->
+            <div class="card">
+                <h3>Add Fuel Entry</h3>
+                <div class="form-group">
+                    <label for="f_odo">Odometer Reading (km)</label>
+                    <input type="number" id="f_odo" placeholder="Eg: 54230">
+                </div>
+                <div class="form-group">
+                    <label for="f_litres">Fuel Filled (litres)</label>
+                    <input type="number" id="f_litres" step="0.01" placeholder="Eg: 35.5">
+                </div>
+                <div class="form-group">
+                    <label for="f_price">Price per Litre (₹)</label>
+                    <input type="number" id="f_price" step="0.01" placeholder="Eg: 105.40">
+                </div>
+
+                <button class="primary-btn" onclick="addFuel()">Save Fuel Entry</button>
+                <button class="export-btn" onclick="exportFuelCSV()">Export Fuel Log as CSV</button>
+            </div>
+
+            <!-- FUEL LIST CARD -->
+            <h2 class="section-title">Fuel History</h2>
+            <div class="card">
+                <div id="fuelList">
+                    <!-- fuel entries will appear here -->
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- SERVICES SECTION -->
+        <section id="service" class="tab">
+
+            <h2 class="section-title">Service Log</h2>
+            <p class="tab-subtitle">Track each service to understand long-term maintenance cost of your vehicle.</p>
+
+            <!-- SERVICE FORM CARD -->
+            <div class="card">
+                <h3>Add Service Entry</h3>
+                <div class="form-group">
+                    <label for="s_odo">Odometer Reading (km)</label>
+                    <input type="number" id="s_odo" placeholder="Eg: 60000">
+                </div>
+                <div class="form-group">
+                    <label for="s_type">Service Type</label>
+                    <input type="text" id="s_type" placeholder="Eg: Full service, Oil change">
+                </div>
+                <div class="form-group">
+                    <label for="s_cost">Service Cost (₹)</label>
+                    <input type="number" id="s_cost" step="0.01" placeholder="Eg: 3500">
+                </div>
+
+                <button class="primary-btn" onclick="addService()">Save Service Entry</button>
+                <button class="export-btn" onclick="exportServiceCSV()">Export Service Log as CSV</button>
+            </div>
+
+            <!-- SERVICE LIST CARD -->
+            <h2 class="section-title">Service History</h2>
+            <div class="card">
+                <div id="serviceList">
+                    <!-- service entries will appear here -->
+                </div>
+            </div>
+
+        </section>
+
+
+
+
+
+
+        <!-- DOCUMENTS SECTION -->
+        <section id="documents" class="tab">
+            <h2 class="section-title">Documents Vault</h2>
+            <p class="tab-subtitle">Securely save your vehicle documents (RC, DL, Insurance) for quick access.</p>
+
+            <!-- ADD DOC CARD -->
+            <div class="card"
+                style="text-align:center; padding: 30px; border: 2px dashed rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);">
+                <div style="font-size: 40px; margin-bottom: 10px;">📂</div>
+                <h3 style="margin-bottom: 10px;">Upload Document</h3>
+                <p style="color: #aaa; font-size: 13px; margin-bottom: 20px;">Use for DL, RC, Insurance, Pollution Cert,
+                    etc.</p>
+                <button class="primary-btn" onclick="openDocModal()" style="max-width: 200px; margin: 0 auto;">+ Add
+                    Document</button>
+            </div>
+
+            <!-- DOCUMENTS GRID -->
+            <h2 class="section-title">Saved Documents</h2>
+            <div id="docGrid" class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));">
+                <!-- Docs injected here -->
+            </div>
+        </section>
+
+
+
+        </section>
+
+        <!-- TRIPS SECTION -->
+        <section id="trips" class="tab">
+            <h2 class="section-title">Trip Manager</h2>
+
+            <!-- START VIEW -->
+            <div id="tripStartView" class="card" style="text-align:center; padding:40px 20px;">
+                <div style="font-size:48px; margin-bottom:10px;">🎒</div>
+                <h3>Plan & Track A New Trip</h3>
+                <p style="font-size:13px; color:#888; margin-bottom:20px;">Track food, hotels, fuel, and split costs
+                    with
+                    friends.</p>
+                <div class="form-group" style="text-align:left;">
+                    <label>Trip Name</label>
+                    <input type="text" id="t_new_name" placeholder="e.g. Goa Road Trip 2024">
+                </div>
+                <button class="primary-btn" onclick="startTrip()">Start New Trip</button>
+                <button class="care-btn" onclick="showTripHistory()"
+                    style="margin-top:10px; width:100%; background:transparent; border:1px solid #444; color:#888;">📜
+                    View Past Trips</button>
+            </div>
+
+            <!-- ACTIVE TRIP VIEW -->
+            <div id="tripActiveView" style="display:none;">
+                <div class="card"
+                    style="background: linear-gradient(135deg, #0f172a, #1e1b4b); border:1px solid #6366f1;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="color:#a5b4fc; margin:0;" id="t_active_name">Goa Trip</h3>
+                        <span
+                            style="font-size:10px; padding:4px 8px; background:#4338ca; border-radius:10px; color:#fff;">LIVE</span>
+                    </div>
+                    <div style="font-size:36px; font-weight:700; color:#fff; margin:10px 0;">₹<span
+                            id="t_total">0</span></div>
+                    <div style="font-size:12px; color:#818cf8;">Total Expenses</div>
+                </div>
+
+                <!-- ADD EXPENSE -->
+                <h3 class="section-title">Add Expense</h3>
+                <div class="card">
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <input type="number" id="t_amt" placeholder="₹ Amount" style="flex:1;">
+                        <select id="t_cat" style="flex:1;">
+                            <option value="Food">🍔 Food</option>
+                            <option value="Hotel">🏨 Hotel</option>
+                            <option value="Fuel">⛽ Fuel</option>
+                            <option value="Toll">🎫 Toll</option>
+                            <option value="Other">🛒 Other</option>
+                        </select>
+                    </div>
+                    <input type="text" id="t_desc" placeholder="Note (e.g. Dinner @ Paradise)"
+                        style="margin-bottom:10px;">
+                    <button class="primary-btn" onclick="addTripExpense()">+ Add Expense</button>
+                </div>
+
+                <!-- EXPENSE LOG -->
+                <h3 class="section-title">Timeline</h3>
+                <div id="t_log" style="margin-bottom:20px;">
+                    <!-- Injected -->
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="card">
+                    <h3>Trip Actions</h3>
+                    <button class="care-btn" style="width:100%; margin-bottom:10px; background:#4f46e5; color:#fff;"
+                        onclick="openSplitModal()">💸 Split / Calculate Shares</button>
+                    <button class="danger-btn" onclick="endTrip()">End Trip</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- DRIVE / SAFETY SECTION -->
+        <section id="drive" class="tab">
+            <h2 class="section-title">Speed & Safety Radar</h2>
+
+            <div class="card"
+                style="text-align:center; padding: 40px 20px; background: linear-gradient(135deg, #1e293b, #0f172a);">
+                <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">CURRENT SPEED</div>
+                <div id="driveSpeed" style="font-size: 72px; font-weight: 800; color: #fff; line-height: 1;">0</div>
+                <div style="font-size: 18px; color: #64748b; margin-bottom: 30px;">km/h</div>
+
+                <div id="driveStatus"
+                    style="padding: 10px; border-radius: 8px; background: #22c55e; color: #000; font-weight: bold; margin-bottom: 20px;">
+                    SAFE - No Cameras Nearby
+                </div>
+
+                <p style="font-size: 12px; color: #888; margin-bottom: 20px;">
+                    <span id="driveLat">Lat: -</span> | <span id="driveLng">Lng: -</span>
+                </p>
+
+                <button class="primary-btn" onclick="markCameraLocation()" style="background: #eab308; color: #000;">⚠️
+                    Mark AI Camera Here</button>
+            </div>
+
+            <div class="card">
+                <h3>Radar Settings</h3>
+                <div class="care-item">
+                    <div class="care-title">Monitor Speed & Cameras</div>
+                    <button id="btnStartDrive" class="care-btn" onclick="toggleDriveMode()">Start</button>
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; color: #aaa;">
+                    ⚠️ Note: Requires GPS permission. Alerts depend on user-marked locations.
+                </div>
+            </div>
+
+            <h2 class="section-title">Known Cameras</h2>
+            <div class="card">
+                <div id="cameraList" style="max-height: 200px; overflow-y: auto;">
+                    <!-- List populated by JS -->
+                </div>
+                <button onclick="clearAllCameras()"
+                    style="width:100%; margin-top:10px; padding:8px; border:1px solid #ff4d4d; color:#ff4d4d; background:transparent; border-radius:6px;">Clear
+                    All Cameras</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- DOCUMENT MODAL (Add/View) -->
+    <div id="docModal" class="modal">
+        <div class="modal-content">
+            <h2>Add Document</h2>
+            <label>Document Title</label>
+            <input type="text" id="d_title" placeholder="e.g. RC Front">
+
+            <label>Select Image (Max 5MB)</label>
+            <input type="file" id="d_file" accept="image/*">
+            <div id="d_previewHelp" style="font-size:12px; color:#aaa; margin-top:5px;"></div>
+
+            <button class="primary-btn" onclick="saveDocument()">Save Document</button>
+            <button class="close-modal-btn" onclick="closeDocModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- VIEW FULL IMAGE MODAL -->
+    <div id="viewDocModal" class="modal" style="z-index: 10001; background: rgba(0,0,0,0.95);">
+        <div
+            style="position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+            <img id="viewDocImg" src=""
+                style="max-width: 95%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+            <div style="margin-top: 20px; display: flex; gap: 20px;">
+                <button onclick="closeViewDoc()"
+                    style="padding: 10px 20px; background: #fff; color: #000; border: none; border-radius: 30px; font-weight: bold; cursor: pointer;">Close</button>
+                <button id="deleteDocBtn" onclick=""
+                    style="padding: 10px 20px; background: #ff4d4d; color: #fff; border: none; border-radius: 30px; font-weight: bold; cursor: pointer;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button (Radial Menu) -->
+    <div class="fab-container">
+        <button class="fab-main" id="fabMain">+</button>
+
+        <div class="fab-menu" id="fabMenu">
+            <button class="fab-item" data-action="fuel" title="Add Fuel">⛽</button>
+            <button class="fab-item" data-action="service" title="Add Service">🛠</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Your Scripts -->
+    <!-- ===========================
+     VEHICLE PROFILE MODAL
+     =========================== -->
+    <div id="vehicleModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header-row" style="display:flex; justify-content:space-between; align-items:center;">
+                <h2>Vehicle Profile</h2>
+                <button type="button" id="manualToggleBtn"
+                    style="font-size:11px; padding:4px 8px; background:rgba(255,255,255,0.1); border:none; color:#38bdf8; cursor:pointer; border-radius:6px;">
+                    Can't find vehicle? Add Manually
+                </button>
+            </div>
+
+            <!-- TYPE SWITCHER -->
+            <div class="type-switcher"
+                style="display:flex; gap:10px; margin-bottom:15px; background:rgba(255,255,255,0.1); padding:4px; border-radius:10px;">
+                <button type="button" id="typeAccCar" class="type-btn active"
+                    style="flex:1; padding:8px; border:none; border-radius:8px; background:transparent; color:#fff; cursor:pointer;">🚗
+                    Car</button>
+                <button type="button" id="typeAccBike" class="type-btn"
+                    style="flex:1; padding:8px; border:none; border-radius:8px; background:transparent; color:#aaa; cursor:pointer;">🏍️
+                    Bike</button>
+            </div>
+
+            <!-- SELECTION MODE -->
+            <div id="selectionMode">
+                <label id="lbl_brand">Brand</label>
+                <select id="v_brand_select"></select>
+
+                <label id="lbl_model">Model</label>
+                <select id="v_model_select" disabled>
+                    <option value="">Select Brand First</option>
+                </select>
+            </div>
+
+
+
+            <!-- MANUAL MODE (Hidden by default) -->
+            <div id="manualMode" style="display:none;">
+                <label>Car Brand</label>
+                <input type="text" id="v_brand_input" placeholder="e.g. Toyota">
+
+                <label>Car Model</label>
+                <input type="text" id="v_model_input" placeholder="e.g. Fortuner">
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label>Fuel Type</label>
+                    <select id="v_fuel">
+                        <option value="Petrol">Petrol</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="CNG">CNG</option>
+                        <option value="EV">Electric</option>
+                        <option value="Hybrid">Hybrid</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Year</label>
+                    <select id="v_year_select"></select> <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <label>Variant</label>
+            <select id="v_variant">
+                <option value="">Select Model & Year First</option>
+            </select>
+
+            <label>Registration Number</label>
+            <input type="text" id="v_reg" placeholder="e.g., KL 18 XX 7600" style="text-transform: uppercase;">
+
+            <label>Nickname (Optional)</label>
+            <input type="text" id="v_name" placeholder="e.g., My Beast">
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label>Tank Cap (L)</label>
+                    <input type="number" id="v_tank" placeholder="e.g., 45">
+                </div>
+                <div>
+                    <label>Service Interval</label>
+                    <input type="number" id="v_interval" placeholder="10000">
+                </div>
+            </div>
+
+            <label>Last Service Odometer (km)</label>
+            <input type="number" id="v_lastservice">
+
+            <label>Insurance Expiry Date</label>
+            <input type="date" id="v_insurance">
+            <label>PUC / Emission Expiry Date</label>
+            <input type="date" id="v_puc">
+
+
+            <button class="save-vehicle-btn" onclick="saveVehicleProfile()">Save</button>
+            <button class="close-modal-btn" onclick="closeVehicleModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- SPLIT MODAL -->
+    <div id="splitModal" class="modal">
+        <div class="modal-content">
+            <h2 style="background:none; -webkit-text-fill-color:initial; color:#fff;">Split Trip Cost</h2>
+            <div style="text-align:center; margin-bottom:20px;">
+                <div style="font-size:13px; color:#aaa;">Total Trip Cost</div>
+                <div style="font-size:32px; font-weight:700; color:#fff;">₹<span id="sm_total">0</span></div>
+            </div>
+
+            <label>Number of People</label>
+            <input type="number" id="sm_people" value="1" min="1" oninput="calcSplit()">
+
+            <div
+                style="margin-top:20px; padding:15px; background:rgba(255,255,255,0.05); border-radius:12px; text-align:center;">
+                <div style="font-size:12px; color:#aaa;">Per Person</div>
+                <div style="font-size:24px; font-weight:700; color:#4ade80;">₹<span id="sm_per_person">0</span></div>
+            </div>
+
+            <button class="primary-btn" onclick="shareTripSummary()" style="background:#25D366; color:#fff;">Share on
+                WhatsApp</button>
+            <button class="close-modal-btn"
+                onclick="document.getElementById('splitModal').classList.remove('show')">Close</button>
+        </div>
+    </div>
+
+    <!-- CLOUD SYNC MODAL -->
+    <div id="cloudModal" class="modal">
+        <div class="modal-content">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div
+                    style="font-size: 32px; font-weight: 800; background: linear-gradient(45deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                    MS</div>
+                <h2
+                    style="margin: 0; font-size: 22px; background: none; -webkit-text-fill-color: initial; color: #fff;">
+                    MotorMate</h2>
+                <div id="cloudStatusBadge" class="status-badge" style="display:inline-block; margin-top:5px;">Offline
+                </div>
+            </div>
+
+            <!-- SECTION: SETUP (Hidden/Dead) -->
+            <div id="cloudSetupSection" style="display:none;"></div>
+
+            <!-- SECTION: AUTH -->
+            <div id="cloudAuthSection" style="display:none;">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="Cloud.switchAuth('login')">Login</button>
+                    <button class="auth-tab" onclick="Cloud.switchAuth('register')">Register</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="authEmail" placeholder="your@email.com">
+                </div>
+
+                <!-- Mobile Number -->
+                <div class="form-group" id="mobileGroup" style="display:none;">
+                    <label>Mobile Number</label>
+                    <input type="tel" id="authMobile" placeholder="+91 98765 43210">
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="authPass" placeholder="******">
+                </div>
+                <div style="text-align:right; margin-bottom:15px;">
+                    <a onclick="Cloud.forgotPassword()" class="forgot-pass-link" style="display:inline-block;">Forgot
+                        Password?</a>
+                </div>
+
+                <button id="authBtn" class="primary-btn" onclick="Cloud.login()">Login</button>
+            </div>
+
+            <!-- SECTION: DASHBOARD (If logged in) -->
+            <div id="cloudDashboardSection" style="display:none;">
+                <p class="modal-info">Logged in as <strong id="currentUserEmail">...</strong></p>
+
+                <div class="sync-actions">
+                    <button class="sync-action-btn" onclick="Cloud.syncUp()">
+                        ⬆️ Push Local to Cloud
+                    </button>
+                    <button class="sync-action-btn" onclick="Cloud.syncDown()">
+                        ⬇️ Pull Cloud to Local
+                    </button>
+                </div>
+
+                <div class="sync-status-msg" id="syncMsg"></div>
+
+                <button class="danger-btn" onclick="Cloud.logout()">Logout</button>
+            </div>
+
+            <button class="close-modal-btn" onclick="closeCloudModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- LIVE DATA MODAL -->
+    <div id="liveDataModal" class="modal">
+        <div class="modal-content">
+            <h2 style="background:none; -webkit-text-fill-color:initial; color:#fff; text-align:center;">Live Vehicle
+                Data</h2>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:center;">
+                <div class="card" style="margin:0; background:rgba(255,255,255,0.05);">
+                    <div style="font-size:12px; color:#aaa;">RPM</div>
+                    <div style="font-size:24px; font-weight:700; color:#fff;" id="live_rpm">--</div>
+                </div>
+                <div class="card" style="margin:0; background:rgba(255,255,255,0.05);">
+                    <div style="font-size:12px; color:#aaa;">Speed</div>
+                    <div style="font-size:24px; font-weight:700; color:#fff;"><span id="live_speed">--</span> <span
+                            style="font-size:12px;">km/h</span></div>
+                </div>
+                <div class="card" style="margin:0; background:rgba(255,255,255,0.05);">
+                    <div style="font-size:12px; color:#aaa;">Temp</div>
+                    <div style="font-size:24px; font-weight:700; color:#fff;" id="live_temp">--</div>
+                </div>
+                <div class="card" style="margin:0; background:rgba(255,255,255,0.05);">
+                    <div style="font-size:12px; color:#aaa;">Battery</div>
+                    <div style="font-size:24px; font-weight:700; color:#fff; color:#4ade80;" id="live_batt">--</div>
+                </div>
+            </div>
+            <p style="font-size:11px; color:#666; margin-top:15px; text-align:center;">
+                Bluetooth OBD-II Connection Active
+            </p>
+            <button class="close-modal-btn" onclick="disconnectOBD()">Disconnect</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+    <!-- Firebase SDKs (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <!-- Cloud Logic -->
+    <script src="cloud.js"></script>
+
+    <!-- PWA Service Worker -->
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("service-worker.js")
+                .then(res => console.log("Service worker registered"))
+                .catch(err => console.log("SW registration failed", err));
+        }
+    </script>
+    <script>
+        function logout() {
+            if (typeof Cloud !== 'undefined' && Cloud.auth) {
+                Cloud.logout();
+            }
+            localStorage.setItem("ms_logged_in", "false");
+            window.location.href = "login.html";
+        }
+    </script>
+</body>
+
+</html>
