@@ -749,37 +749,75 @@
             window.location.href = "login.html";
         }
     </script>
-    <!-- Chatbot UI -->
-<div id="chatbox">
-  <div id="messages"></div>
+  <!-- ================= CHATBOT ================= -->
 
-  <input id="userInput" type="text" placeholder="Ask about your vehicle...">
-  <button onclick="sendMessage()">Send</button>
+<div id="chat-container">
+  <div id="chat-header">MS MotorMate AI</div>
+
+  <div id="chat-messages"></div>
+
+  <div id="chat-input-area">
+    <input id="userInput" type="text" placeholder="Ask about your vehicle..." />
+    <button onclick="sendMessage()">➤</button>
+  </div>
 </div>
 
 <style>
-#chatbox {
-  width: 300px;
+#chat-container {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: #ffffff;
-  padding: 10px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  width: 320px;
+  background: #111;
+  border-radius: 15px;
+  box-shadow: 0 0 15px rgba(0,255,255,0.2);
   font-family: Arial;
+  overflow: hidden;
 }
 
-#messages {
-  height: 200px;
+/* Header */
+#chat-header {
+  background: linear-gradient(90deg, #00e5ff, #00bcd4);
+  color: black;
+  padding: 10px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Messages */
+#chat-messages {
+  height: 220px;
   overflow-y: auto;
-  margin-bottom: 10px;
+  padding: 10px;
   font-size: 14px;
+  color: white;
+}
+
+/* Input area */
+#chat-input-area {
+  display: flex;
+  border-top: 1px solid #333;
+}
+
+#chat-input-area input {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: #1a1a1a;
+  color: white;
+  outline: none;
+}
+
+#chat-input-area button {
+  background: #00e5ff;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-weight: bold;
 }
 </style>
-    <script>
-const name = "MS MotorMate Assistant";
-const mood = "ready to help with your vehicle";
+
+<script>
 const app = "MS MotorMate";
 
 const responses = {
@@ -792,17 +830,22 @@ const responses = {
   ],
 
   "engine oil": [
-    "Engine oil lubricates engine parts",
-    "It keeps engine smooth"
+    "Engine oil keeps your engine smooth",
+    "It lubricates engine parts"
   ],
 
   "add vehicle": [
-    "Go to dashboard and add your vehicle"
+    "Click + Add button to add your vehicle"
+  ],
+
+  "service": [
+    "You will get reminders for service",
+    "Service helps maintain your vehicle"
   ],
 
   "default": [
     "Sorry I didn't understand",
-    "Can you rephrase?"
+    "Try asking about fuel, mileage or service"
   ]
 };
 
@@ -822,21 +865,31 @@ function getResponse(input) {
 
 function sendMessage() {
   let inputField = document.getElementById("userInput");
-  let message = inputField.value;
+  let message = inputField.value.trim();
 
-  if (!message) return;
+  if (message === "") return;
 
-  let chat = document.getElementById("messages");
+  let chat = document.getElementById("chat-messages");
 
-  chat.innerHTML += "<div><b>You:</b> " + message + "</div>";
+  chat.innerHTML += `<div><b>You:</b> ${message}</div>`;
 
   let reply = getResponse(message);
 
-  chat.innerHTML += "<div><b>Bot:</b> " + reply + "</div>";
+  setTimeout(() => {
+    chat.innerHTML += `<div style="color:#00e5ff;"><b>AI:</b> ${reply}</div>`;
+    chat.scrollTop = chat.scrollHeight;
+  }, 300);
 
   inputField.value = "";
-  chat.scrollTop = chat.scrollHeight;
 }
+
+/* ENTER KEY FIX */
+document.getElementById("userInput")
+.addEventListener("keypress", function(e) {
+  if (e.key === "Enter") {
+    sendMessage();
+  }
+});
 </script>
 </body>
 
