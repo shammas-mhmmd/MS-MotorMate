@@ -749,6 +749,95 @@
             window.location.href = "login.html";
         }
     </script>
+    <!-- Chatbot UI -->
+<div id="chatbox">
+  <div id="messages"></div>
+
+  <input id="userInput" type="text" placeholder="Ask about your vehicle...">
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<style>
+#chatbox {
+  width: 300px;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #ffffff;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  font-family: Arial;
+}
+
+#messages {
+  height: 200px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+</style>
+    <script>
+const name = "MS MotorMate Assistant";
+const mood = "ready to help with your vehicle";
+const app = "MS MotorMate";
+
+const responses = {
+  "hello": ["Hey! Welcome to " + app],
+  "hi": ["Hello! How can I help you?"],
+
+  "mileage": [
+    "Mileage is distance per liter",
+    "It shows fuel efficiency"
+  ],
+
+  "engine oil": [
+    "Engine oil lubricates engine parts",
+    "It keeps engine smooth"
+  ],
+
+  "add vehicle": [
+    "Go to dashboard and add your vehicle"
+  ],
+
+  "default": [
+    "Sorry I didn't understand",
+    "Can you rephrase?"
+  ]
+};
+
+function getResponse(input) {
+  input = input.toLowerCase();
+
+  for (let key in responses) {
+    if (input.includes(key)) {
+      let arr = responses[key];
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+  }
+
+  let def = responses["default"];
+  return def[Math.floor(Math.random() * def.length)];
+}
+
+function sendMessage() {
+  let inputField = document.getElementById("userInput");
+  let message = inputField.value;
+
+  if (!message) return;
+
+  let chat = document.getElementById("messages");
+
+  chat.innerHTML += "<div><b>You:</b> " + message + "</div>";
+
+  let reply = getResponse(message);
+
+  chat.innerHTML += "<div><b>Bot:</b> " + reply + "</div>";
+
+  inputField.value = "";
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>
 </body>
 
 </html>
